@@ -1,6 +1,6 @@
 import unittest
 
-from app.diagnosis.incident_tracker import reconcile_incidents
+from app.diagnosis.incident_tracker import reconcile_incidents, select_incident_records
 
 
 class IncidentReconciliationTests(unittest.TestCase):
@@ -44,6 +44,18 @@ class IncidentReconciliationTests(unittest.TestCase):
         self.assertEqual(result[0]['status'], 'ACTIVE')
         self.assertEqual(result[0]['last_observed_at'], incident['last_observed_at'])
         self.assertIsNot(result[0], incident)
+
+    def test_bounded_history_keeps_active_records_and_recently_closed_records(self):
+        history = [
+            {'incident_id': 'old-active', 'status': 'ACTIVE'},
+            *[{'incident_id': f'closed-{index}', 'status': 'RESOLVED'} for index in range(60)],
+        ]
+
+        visible = select_incident_records(history, limit=4)
+
+        self.assertEqual([item['incident_id'] for item in visible], [
+            'old-active', 'closed-57', 'closed-58', 'closed-59',
+        ])
 
 
 if __name__ == '__main__':

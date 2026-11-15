@@ -133,6 +133,15 @@ def reconcile_incidents(current_candidates, incidents, observed_at=None,
     return incidents
 
 
+def select_incident_records(incidents, limit=50):
+    """Return active incidents plus the newest closed records within the limit."""
+    records = incidents if isinstance(incidents, list) else []
+    active = [item for item in records if item.get('status') == 'ACTIVE']
+    closed = [item for item in records if item.get('status') != 'ACTIVE']
+    remaining = max(0, limit - len(active))
+    return active + (closed[-remaining:] if remaining else [])
+
+
 def update_incident_history(current_candidates, telemetry_complete=True):
     """Update the local incident history only after complete collection."""
     incidents = load_incident_history()

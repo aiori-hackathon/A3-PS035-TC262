@@ -38,6 +38,15 @@ function readable(value) {
     .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
+function severityTone(value) {
+  const severity = String(value || "").toLowerCase();
+  if (severity.includes("critical") || severity.includes("emergency")) return "critical";
+  if (severity.includes("high") || severity.includes("major")) return "high";
+  if (severity.includes("medium") || severity.includes("warning")) return "warning";
+  if (severity.includes("low") || severity.includes("info")) return "low";
+  return "unknown";
+}
+
 function formatDate(value) {
   if (!value) return "Not recorded";
 
@@ -289,7 +298,7 @@ function InvestigationReport({currentUser, investigationId}) {
                   ) : (
                     <div className="report-list">
                       {causes.map((cause, index) => (
-                        <ReportCard key={cause.id || index}>
+                        <ReportCard key={cause.id || index} className={`report-cause-card tone-${severityTone(cause.severity)}`}>
                           <div className="report-card-top">
                             <div>
                               <span className="report-small-label">
@@ -344,7 +353,7 @@ function InvestigationReport({currentUser, investigationId}) {
                   ) : (
                     <div className="report-list">
                       {findings.map((finding, index) => (
-                        <ReportCard key={finding.id || index}>
+                        <ReportCard key={finding.id || index} className={`report-finding-card tone-${severityTone(finding.severity)}`}>
                           <div className="report-card-top">
                             <h3>{readable(finding.type)}</h3>
                             <span className="report-severity">
@@ -489,7 +498,7 @@ function InvestigationReport({currentUser, investigationId}) {
                   ) : (
                     <div className="report-list">
                       {incidents.map((incident, index) => (
-                        <ReportCard key={incident.id || index}>
+                        <ReportCard key={incident.id || index} className={`report-incident-card tone-${severityTone(incident.severity)}`}>
                           <div className="report-card-top">
                             <h3>
                               {incident.title ||

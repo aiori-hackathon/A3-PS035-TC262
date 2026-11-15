@@ -5,6 +5,7 @@ import json
 import os
 from flask import Blueprint, jsonify
 from app.topology import load_topology
+from app.diagnosis.incident_tracker import select_incident_records
 
 live = Blueprint('live', __name__)
 
@@ -66,7 +67,8 @@ def build_live_response(snapshot, diagnosis, incidents, now=None):
             'routers': routers, 'topology': {'links': topology}, 'diagnosis': diagnosis,
             'evidence': [{'id': f'finding-{index+1}', **item} for index, item in enumerate(findings)],
             'measurements': diagnosis.get('measurements', []), 'syslog_events': diagnosis.get('syslog_events', []),
-            'incidents': [{key: item.get(key) for key in incident_fields} for item in incidents[-50:]],
+            'incidents': [{key: item.get(key) for key in incident_fields}
+                          for item in select_incident_records(incidents, limit=50)],
             'incidents_total': len(incidents), 'incidents_scope': 'last_50_stored_records',
             'limitations': 'Read-only stored telemetry. No collection is triggered. No physical link health is inferred from BGP. Impact is a topology-based estimate.'}
 

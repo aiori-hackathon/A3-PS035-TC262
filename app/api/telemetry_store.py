@@ -127,7 +127,7 @@ def ingest():
             return jsonify(error='Snapshot too large.'), 413
         clean = validate_snapshot(json.loads(raw))
         from app.api.main import build_diagnosis, telemetry_collection_complete
-        from app.diagnosis.incident_tracker import reconcile_incidents
+        from app.diagnosis.incident_tracker import reconcile_incidents, select_incident_records
 
         latest = document()
         record = latest.get(timeout=8)
@@ -142,10 +142,7 @@ def ingest():
             telemetry_complete=telemetry_collection_complete(clean),
         )
         # Keep active incidents and the most recent resolved records bounded.
-        active = [item for item in incidents if item.get('status') == 'ACTIVE']
-        resolved = [item for item in incidents if item.get('status') != 'ACTIVE']
-        resolved_limit = max(0, 200 - len(active))
-        incidents = active + (resolved[-resolved_limit:] if resolved_limit else [])
+        incidents = select_incident_records(incidents, limit=200)
         # The snapshot and its incident lifecycle are committed together so Live
         # never serves an incident state from a different upload.
         latest.set({

@@ -6,6 +6,12 @@ history, or saves reports automatically. The authenticated operator uploader sto
 each snapshot and updates its incident lifecycle on the backend. Demo fixtures remain
 independent.
 
+The Live Monitoring workspace summarizes collection and incident counts and renders
+the latest stored topology for router-level triage. Selecting a router filters its
+related observations; demo scenarios remain a separate, prerecorded workflow. Status
+colors and counts come from the fetched snapshot, whose observation timestamp and
+freshness are shown separately from API response time.
+
 ## Configuration
 
 Install backend dependencies with `python -m pip install -r requirements.txt` in
@@ -57,8 +63,10 @@ In local-directory mode, the newest lexically named telemetry file is read, with
 ordering. In Firestore mode, the latest bounded snapshot and incident history share
 one private server-only document. Each accepted upload updates incident state from
 its diagnosis; incomplete router collection leaves active incidents unchanged, and
-a complete snapshot without a candidate resolves them. The last 50 records are
-returned; timestamps describe observation time and may differ from API response time.
+a complete snapshot without a candidate resolves them. The response prioritizes all
+active incidents and fills the remaining slots with the most recently closed records,
+up to 50 total. Timestamps describe observation time and may differ from API response
+time.
 
 Responses distinguish observation time from API response time. Older than three
 minutes is stale; unknown/future timestamps do not imply fresh data. Router

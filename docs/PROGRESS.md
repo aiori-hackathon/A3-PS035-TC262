@@ -630,9 +630,41 @@ Phase F was committed and pushed as `bf27cfb` before this work.
 - Telemetry-ingest integration test was added but could not run in this local Python
   environment because Flask is not installed (`ModuleNotFoundError: flask`). The
   backend integration result remains unverified until run in the backend environment.
-- The already deployed Render version does not include Phase M until the user approves
-  commit/push and Render completes its automatic deployment. No Firestore writes were
-  made by these code changes.
+- Phase M was committed and pushed as `700cd75` to `origin/main`. Render deployment
+  state has not been verified yet. No Firestore writes were made by local checks.
 - Live VM fault drill separately verified BGP fault detection and recovery against
   the current deployment; that operational result is recorded in the conversation,
   not treated as Phase M cloud incident-history verification.
+
+## Phase N — Incident history triage and timeline (16 November 2026)
+
+### Implemented locally
+- Live Monitoring now filters the stored incident set to all, active or resolved
+  records and shows first observed, last observed, resolution time and observed span.
+- The API response keeps every active incident visible while filling the remaining
+  50-record response capacity with the newest closed incidents.
+- Added pure incident-history filter/span tests and bounded-history selection tests.
+- Extended the isolated UI fixture with synthetic active/resolved incident records;
+  visually checked the resolved filter and its lifecycle timeline.
+- Refreshed the Live Monitoring MVP into an operations dashboard with a responsive
+  router map, collection and incident summary cards, and focused connection status,
+  using the same warm neutral and coral palette as the rest of the workspace.
+- Replaced decorative signal animation with a quiet, selectable topology view and a
+  direct link to prerecorded demo scenarios. Saved report cards now use severity
+  accents, stronger reading hierarchy and a clearer recommended-action panel.
+
+### Verification and status
+- Frontend lint: PASS, exit 0.
+- Frontend tests: PASS, 63 tests, 0 failures; existing Node experimental module
+  mocking notice remains.
+- Frontend production build: PASS, exit 0; 1991 modules, no oversized-chunk warning.
+- Incident helper tests: PASS, 3 tests; diagnosis tests: PASS, 2 tests.
+- `python3 -m compileall -q app tests`: PASS; `git diff --check`: PASS.
+- Backend ingest integration test remains blocked in this local Python environment:
+  Flask is missing (`ModuleNotFoundError: flask`).
+- Local UI preview verified using synthetic data only. The preview server was stopped
+  after inspection. Phase N remains uncommitted and unpushed pending user approval.
+- The updated dashboard and synthetic router map were inspected in the isolated
+  local preview; no production telemetry or router controls were used.
+- Render deployment state for Phase M is still unverified; do not claim Phase N is
+  deployed.
