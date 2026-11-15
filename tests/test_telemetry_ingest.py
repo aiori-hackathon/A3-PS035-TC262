@@ -4,6 +4,8 @@ import unittest
 from datetime import datetime, timezone
 from unittest.mock import patch, MagicMock
 from app.api.main import app
+from app.collector.measurements import probe_link
+from app.topology import load_topology
 
 
 class IngestTests(unittest.TestCase):
@@ -33,6 +35,35 @@ class IngestTests(unittest.TestCase):
         self.assertIsInstance(payload,bytes)
         self.assertNotIn('private',payload.decode())
         self.assertEqual(len(json.loads(payload)['routers']),5)
+
+    def test_collector_probe_targets_match_ingest_topology(self):
+        topology = load_topology()
+        link = topology['links'][0]
+        routers_by_id = {
+            router['id']: {'container': router['container']}
+            for router in topology['routers']
+        }
+        ping_output = (
+            '10 packets transmitted, 10 packets received, 0% packet loss\n'
+            'rtt min/avg/max/mdev = 0.100/0.200/0.300/0.050 ms'
+        )
+        with patch('app.collector.measurements.run_command', return_value={'output': ping_output}):
+            measurement = probe_link(link, routers_by_id)
+
+        self.assertEqual(
+            [probe['target'] for probe in measurement['observations']],
+            [link['b'], link['a']],
+        )
+        payload = {
+            **self.data,
+            'topology': topology,
+            'measurements': [measurement],
+            'syslog_events': [],
+        }
+        response = self.client.post(
+            '/api/telemetry/ingest', json=payload, headers=self.headers,
+        )
+        self.assertEqual(response.status_code, 201, response.get_data(as_text=True))
 
     def test_stale_malformed_and_oversized_uploads_do_not_write(self):
         for value in ({},None,{**self.data,'collected_at':'2000-01-01T00:00:00Z'},{**self.data,'routers':[]}):

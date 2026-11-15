@@ -25,5 +25,5 @@ def probe_link(link, routers_by_id, count=10, timeout=1):
         target = link[peer_side + '_endpoint']['address']
         container = routers_by_id[router]['container']
         result = run_command(['docker','exec',container,'ping','-n','-I',source,'-c',str(count),'-W',str(timeout),target], timeout=count * (timeout + 1) + 3)
-        observations.append({'router':router,'target':peer_side,'target_address':target,**parse_ping(result['output'])})
+        observations.append({'router':router,'target':link[peer_side],'target_address':target,**parse_ping(result['output'])})
     return {'link':link['id'], 'observations':observations}

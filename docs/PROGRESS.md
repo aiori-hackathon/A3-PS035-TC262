@@ -1,5 +1,24 @@
 # NETSCOPE progress — 31 October 2026
 
+## Live telemetry ingest compatibility fix
+
+### Completed
+- Corrected active probe observations to report the target router ID rather than
+  the topology endpoint key (`a` or `b`). The backend validates router IDs and
+  endpoint addresses before storing telemetry, so the previous payload was
+  rejected despite successful collection and authentication.
+- Added an ingest regression test that builds probe measurements from the lab
+  topology and verifies the backend accepts the resulting snapshot.
+
+### Verification
+- Targeted telemetry-ingest tests: PASS, 7 tests.
+- Diagnosis and telemetry-ingest tests: PASS, 9 tests.
+- Python compile check and `git diff --check`: PASS.
+- Full unittest discovery remains incomplete because the local Python environment
+  does not have `firebase_admin` installed (`tests/test_live_api.py` import error).
+- VM-side snapshot validation previously failed with
+  `Probe does not match configured link endpoints`; rerun after deploying this fix.
+
 ## Current milestone
 My Investigations, Phase A and Phase B are committed and pushed. Phase B is
 `8d1bb28` on origin/main. Phase C was committed and pushed as `bae01be`.
