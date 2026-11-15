@@ -486,3 +486,80 @@ Phase F was committed and pushed as `bf27cfb` before this work.
 - Deployment still pending account access, Admin secret provisioning, private
   telemetry Firestore rule verification, approved UID/CORS configuration and
   commit/push approval. No cloud resources or VM uploader started yet.
+
+## Phase K — PS-035 evidence pipeline and lab workflow (15 November 2026)
+
+### Implemented locally
+- Added `lab/topology.json` as the shared five-router/five-link inventory used by
+  collection, diagnosis, impact estimation and the authenticated Live response.
+- Collector now records interface state, bounded bidirectional ICMP probes and
+  summarized recent container log events alongside BGP and address observations.
+  The hosted read-only endpoint continues to consume stored snapshots only.
+- Rule-based diagnosis combines interface state, packet loss/latency, BGP state and
+  matching log events into ranked link hypotheses with transparent weighted scores,
+  confidence labels and supporting signals. These scores are not probabilities.
+- Live and investigation screens show source, collection coverage, hypothesis rank,
+  confidence and evidence. They explicitly distinguish ICMP reachability from
+  physical-link verification and preserve an unsupported-conclusion state.
+- Live and investigation screens now display each link's probe direction, reply
+  count, measured loss and average RTT, plus parsed log events when present.
+- Log correlation excludes BGP Established/recovery events and caps repeated copies
+  of the same router/peer/interface state so log repetition alone cannot inflate a
+  candidate score.
+- Added five labeled isolated-lab fault scenarios and a fixed-command CLI. Scenario
+  listing is read-only; applying/restoring requires explicit `--confirm-lab ps035`
+  and checks that all five configured lab containers are running. No scenario was
+  applied in this work. Do not use on venue or production routers.
+- Added a held-out JSONL evaluator for Top-1/Top-3 fault ranking, unsupported
+  conclusion rate, abstention accuracy and fault-case abstention. No held-out
+  dataset was supplied, so no model accuracy is claimed.
+- Added a runbook for safe baseline → one fault → collect → restore → recovery
+  verification and controlled held-out labeling. Added a read-only Containerlab
+  preflight command and a one-shot collector output-directory option so run files
+  can stay in protected temporary storage instead of the Git checkout.
+- Increased the bounded ping sample to ten packets per direction to make the
+  delay/loss scenario more informative; collection may take longer on timeouts.
+- Ping output with a nonzero command exit but a packet summary is still counted as
+  measured loss; a timeout with no summary remains unavailable.
+- Tightened Firestore snapshot validation to require probes and summarized log
+  events to match the configured topology and to constrain measurement values.
+  Older snapshots can omit the new signals; those are treated as unavailable rather
+  than healthy.
+
+### Verification and remaining work
+- `npm --prefix frontend run lint`: PASS, exit 0.
+- `npm --prefix frontend test`: PASS, 59 tests, 0 failures/skipped. Node emits its
+  existing experimental module-mocking warning.
+- `npm --prefix frontend run build`: PASS, exit 0; 1990 modules. Deferred Firebase
+  chunk is 468.82 kB (141.09 kB gzip); entry is 374.56 kB (116.81 kB gzip). No
+  oversized-chunk warning.
+- `python3 -m compileall -q app tools`: PASS, exit 0.
+- `git diff --check`: PASS, exit 0.
+- `python3 -m unittest tests.test_diagnosis`: PASS, 2 tests.
+- `python3 -m unittest discover -s tests`: BLOCKED at two test-module imports because
+  system Python has no `flask` or `firebase_admin`; the two diagnosis tests pass
+  separately. No requirements were installed into system Python.
+- `python3 -m app.collector.fault_lab list`: PASS, lists five scenarios and states
+  that no network changes were made.
+- Lab runbook is at `docs/FAULT_LAB_RUNBOOK.md`. The read-only `check` command and
+  snapshot collection were not run because this checkout is not operating on the
+  Ubuntu VM's Docker context; no VM/container state was touched.
+- The user reconnected VS Code to `SSH: Ubuntu-VM`; the remote `/home/ayush/ps035`
+  checkout is 15 commits behind `origin/main` and shows 29 pending changes. It was
+  left untouched. A fresh remote terminal was opened, but disk and container output
+  could not be read reliably through the UI, so current VM health remains unknown.
+  Direct SSH from the local command environment timed out; no alternate Docker
+  context was used.
+- Extracted the shared command runner after startup-path review identified and
+  removed a collector import cycle. `python3 -m app.collector.telemetry --help`
+  now loads successfully without contacting Docker.
+- Ping parser spot check: PASS for total packet loss and empty/unavailable output.
+- Syslog correlation spot check: PASS; Established recovery was excluded and
+  repeated matching fault lines did not inflate the candidate score.
+- Held-out evaluation is pending; there is no labeled held-out dataset. No lab
+  collection, fault injection, VM/Docker command, cloud write or deploy was
+  performed. User has authorized committing and pushing this local phase after
+  checks; remote publication is pending.
+- Populate and independently review held-out runs before using evaluator metrics in
+  a presentation. Validate actual FRR logs and probe behavior against the target
+  Containerlab image before the regional demo.

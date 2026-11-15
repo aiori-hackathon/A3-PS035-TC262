@@ -10,6 +10,8 @@ from app.collector.telemetry import collect_snapshot, save_snapshot
 from app.diagnosis.bgp_analyzer import analyze_bgp
 from app.diagnosis.root_cause import correlate_findings
 from app.diagnosis.impact_analysis import analyze_impact
+from app.diagnosis.measurements import analyze_interfaces, analyze_probes
+from app.topology import load_topology
 from app.diagnosis.incident_tracker import update_incident_history
 
 app = Flask(__name__)
@@ -19,6 +21,7 @@ from app.api.telemetry_store import telemetry_ingest
 app.register_blueprint(telemetry_ingest)
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+TOPOLOGY = load_topology()
 DATA_DIR = PROJECT_ROOT / "data"
 
 
@@ -33,8 +36,8 @@ def load_latest_telemetry():
 
 def telemetry_collection_complete(snapshot):
     routers = snapshot.get("routers", [])
-
-    expected_routers = {"r1", "r2", "r3", "r4", "r5"}
+    topology = snapshot.get("topology") or TOPOLOGY
+    expected_routers = {item["id"] for item in topology["routers"]}
     collected_routers = {
         router.get("router", "").lower()
         for router in routers
@@ -43,7 +46,7 @@ def telemetry_collection_complete(snapshot):
 
     return (
         collected_routers == expected_routers
-        and len(routers) == 5
+        and len(routers) == len(expected_routers)
         and all(
             isinstance(router, dict)
             and router.get("healthy_collection") is True
@@ -57,14 +60,18 @@ def build_diagnosis(snapshot):
     if not isinstance(routers, list):
         raise ValueError("Unexpected telemetry snapshot format")
 
+    topology = snapshot.get("topology") or TOPOLOGY
     findings = []
 
     for router_data in routers:
         if isinstance(router_data, dict):
             findings.extend(analyze_bgp(router_data))
 
-    correlated = correlate_findings(findings)
-    impact = analyze_impact(correlated)
+    findings.extend(analyze_interfaces(routers, topology))
+    findings.extend(analyze_probes(snapshot.get("measurements", [])))
+    syslog_events = snapshot.get("syslog_events", [])
+    correlated = correlate_findings(findings, topology, syslog_events)
+    impact = analyze_impact(correlated, topology)
 
     return {
         "snapshot_timestamp": snapshot.get("collected_at"),
@@ -72,6 +79,13 @@ def build_diagnosis(snapshot):
         "finding_count": len(findings),
         "findings": findings,
         "candidate_root_causes": correlated,
+        "diagnosis_status": "ranked_hypotheses" if correlated else "insufficient_evidence",
+        "unsupported_conclusion": None if correlated else "Available telemetry does not support a specific fault conclusion. Check collection coverage, router logs, active probes and timestamps.",
+        "coverage": {"routers_total": len(topology["routers"]), "routers_collected": sum(1 for item in routers if item.get("healthy_collection") is True),
+                     "links_total": len(topology["links"]), "links_measured": sum(1 for item in snapshot.get("measurements", []) if any(p.get("available") for p in item.get("observations", []))),
+                     "syslog_events": len(syslog_events)},
+        "syslog_events": syslog_events,
+        "measurements": snapshot.get("measurements", []),
         "impact_analysis": impact,
     }
 

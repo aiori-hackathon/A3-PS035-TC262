@@ -22,5 +22,6 @@
 .live-panel .live-error { background:#fae4dc; color:#922f21; padding:12px; border-radius:8px; }
 .live-note { font-size:12px!important; color:#65695f; }
 .live-record { border-top:1px solid #e6e0d6; padding:16px 0; font-size:13px; }.live-record p { margin:8px 0; }.live-record small { color:#666b60; }
+.live-record .live-signal { display:block; margin:6px 0; }
 @media(max-width:600px) { .live-page .workspace-header { flex-wrap:wrap; height:auto; gap:18px; padding:20px; }.live-times { grid-template-columns:1fr; }.live-main { padding:24px 16px; }.live-panel { padding:18px; } }
 @media(prefers-reduced-motion:reduce) { .live-page * { animation:none!important; transition:none!important; scroll-behavior:auto!important; } }

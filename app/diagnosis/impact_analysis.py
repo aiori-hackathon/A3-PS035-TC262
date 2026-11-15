@@ -1,26 +1,29 @@
 from collections import deque
 
 from app.diagnosis.root_cause import LINKS
+from app.topology import load_topology
 
 
-def analyze_impact(incidents):
+def analyze_impact(incidents, topology_config=None):
     """
     Estimate network impact using the known topology.
 
     This is topology-based analysis, not proof of live route reachability.
     """
-    routers = {"r1", "r2", "r3", "r4", "r5"}
-
+    configured = topology_config or load_topology()
+    routers = {item["id"] for item in configured["routers"]}
     topology = {router: set() for router in routers}
 
-    for link in LINKS:
-        left, right = link["routers"]
+    for link in configured["links"]:
+        left, right = link["a"], link["b"]
         topology[left].add(right)
         topology[right].add(left)
 
     failed_links = set()
 
     for incident in incidents:
+        if incident.get("score", 0) < 4:
+            continue
         candidate = incident.get("candidate_link", "")
         parts = candidate.lower().split("-")
 

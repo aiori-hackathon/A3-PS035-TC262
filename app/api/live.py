@@ -4,7 +4,7 @@ from pathlib import Path
 import json
 import os
 from flask import Blueprint, jsonify
-from app.diagnosis.root_cause import LINKS
+from app.topology import load_topology
 
 live = Blueprint('live', __name__)
 
@@ -40,13 +40,23 @@ def build_live_response(snapshot, diagnosis, incidents, now=None):
                         'collection_ok': complete,
                         'status': 'unknown' if not complete else 'attention' if related else 'no_findings',
                         'findings_count': len(related)})
+    configured = snapshot.get('topology') or load_topology()
+    measurement_by_link = {item.get('link'): item for item in diagnosis.get('measurements', [])}
     topology = []
-    for item in LINKS:
-        a, b = [name.upper() for name in item['routers']]
-        name = f'{a}-{b}'
-        topology.append({'id': name, 'a': a, 'b': b, 'subnet': item['subnet'],
-                         'physical_status': 'not_measured',
-                         'status': 'suspected' if any(c['candidate_link'] == name for c in candidates) else 'unknown'})
+    for item in configured['links']:
+        name = item['id']
+        probes = measurement_by_link.get(name, {}).get('observations', [])
+        if not probes or not any(probe.get('available') for probe in probes):
+            physical = 'not_measured'
+        elif any(probe.get('packet_loss_percent') == 100 for probe in probes):
+            physical = 'probe_unreachable'
+        elif any((probe.get('packet_loss_percent') or 0) > 0 for probe in probes):
+            physical = 'probe_packet_loss'
+        else:
+            physical = 'probe_reachable'
+        topology.append({'id': name, 'a': item['a'].upper(), 'b': item['b'].upper(), 'subnet': item['subnet'],
+                         'physical_status': physical,
+                         'status': 'suspected' if any(c['candidate_link'] == name for c in candidates) else 'observed_healthy' if physical == 'probe_reachable' else 'unknown'})
     # No collector stdout, shell commands, configuration files or fault-control state.
     incident_fields = ('incident_id', 'candidate_link', 'status', 'severity', 'first_detected_at', 'last_observed_at', 'resolved_at', 'assessment')
     return {'schema_version': 1, 'source': 'live', 'provenance': 'backend_recorded_snapshot',
@@ -55,6 +65,7 @@ def build_live_response(snapshot, diagnosis, incidents, now=None):
             'freshness': 'unknown' if age is None else 'stale' if age > 180 else 'recent',
             'routers': routers, 'topology': {'links': topology}, 'diagnosis': diagnosis,
             'evidence': [{'id': f'finding-{index+1}', **item} for index, item in enumerate(findings)],
+            'measurements': diagnosis.get('measurements', []), 'syslog_events': diagnosis.get('syslog_events', []),
             'incidents': [{key: item.get(key) for key in incident_fields} for item in incidents[-50:]],
             'incidents_total': len(incidents), 'incidents_scope': 'last_50_stored_records',
             'limitations': 'Read-only stored telemetry. No collection is triggered. No physical link health is inferred from BGP. Impact is a topology-based estimate.'}
