@@ -6,6 +6,7 @@ import os
 from flask import Blueprint, jsonify
 from app.topology import load_topology
 from app.diagnosis.incident_tracker import select_incident_records
+from app.api.telemetry_history import MAX_HISTORY_SAMPLES, history_sample
 
 live = Blueprint('live', __name__)
 
@@ -27,7 +28,7 @@ def snapshot_age(value, now):
         return None
 
 
-def build_live_response(snapshot, diagnosis, incidents, now=None):
+def build_live_response(snapshot, diagnosis, incidents, now=None, history=None):
     now = now or datetime.now(timezone.utc)
     age = snapshot_age(snapshot.get('collected_at'), now)
     findings = diagnosis['findings']
@@ -69,6 +70,7 @@ def build_live_response(snapshot, diagnosis, incidents, now=None):
             'measurements': diagnosis.get('measurements', []), 'syslog_events': diagnosis.get('syslog_events', []),
             'incidents': [{key: item.get(key) for key in incident_fields}
                           for item in select_incident_records(incidents, limit=50)],
+            'history': (history or [])[-MAX_HISTORY_SAMPLES:],
             'incidents_total': len(incidents), 'incidents_scope': 'last_50_stored_records',
             'limitations': 'Read-only stored telemetry. No collection is triggered. No physical link health is inferred from BGP. Impact is a topology-based estimate.'}
 
@@ -79,10 +81,10 @@ def snapshot():
         try:
             from app.api.telemetry_store import load_live_state
             from app.api.main import build_diagnosis
-            data, incidents = load_live_state()
+            data, incidents, history = load_live_state()
             if data is None:
                 return jsonify(error='No telemetry has been collected.'), 404
-            result = build_live_response(data, build_diagnosis(data), incidents)
+            result = build_live_response(data, build_diagnosis(data), incidents, history=history)
             return jsonify(result)
         except Exception:
             return jsonify(error='Telemetry storage unavailable.'), 503
@@ -106,6 +108,14 @@ def snapshot():
         incidents = read_json(incident_path) if incident_path.exists() else []
         if not isinstance(incidents, list) or not all(isinstance(item, dict) for item in incidents):
             raise ValueError('Invalid incident history')
-        return jsonify(build_live_response(data, diagnosis, incidents))
+        history = []
+        for path in paths[-MAX_HISTORY_SAMPLES:]:
+            try:
+                sample = history_sample(read_json(path))
+                if sample is not None:
+                    history.append(sample)
+            except (OSError, ValueError, TypeError, AttributeError):
+                continue
+        return jsonify(build_live_response(data, diagnosis, incidents, history=history))
     except (OSError, ValueError, TypeError, AttributeError, KeyError):
         return jsonify(error='Stored telemetry could not be read safely.'), 503

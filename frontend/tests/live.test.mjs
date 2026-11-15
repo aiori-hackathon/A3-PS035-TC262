@@ -12,6 +12,10 @@ test('snapshot validation rejects malformed nested render values',()=> {
   assert.equal(validateLiveSnapshot(snapshot),snapshot);
   assert.throws(()=>validateLiveSnapshot({...snapshot,routers:[{id:{}}]}));
   assert.throws(()=>validateLiveSnapshot({...snapshot,diagnosis:{...snapshot.diagnosis,impact_analysis:{limitations:{}}}}));
+  const sample={observed_at:'2026-11-16T10:00:00Z',links:[{link:'R1-R2',packet_loss_percent:0,rtt_avg_ms:2.4,probes_available:2}]};
+  assert.equal(validateLiveSnapshot({...snapshot,history:[sample]}).history.length,1);
+  assert.throws(()=>validateLiveSnapshot({...snapshot,history:[{...sample,links:[{...sample.links[0],packet_loss_percent:120}]}]}));
+  assert.throws(()=>validateLiveSnapshot({...snapshot,history:Array(121).fill(sample)}));
 });
 test('freshness never labels missing, future, or stale records recent',()=> {
   assert.equal(freshness({freshness:'unknown',observed_at:'1970-01-01T00:00:00Z'},1000),'Unknown observation time');

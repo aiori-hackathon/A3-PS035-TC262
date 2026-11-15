@@ -663,8 +663,34 @@ Phase F was committed and pushed as `bf27cfb` before this work.
 - Backend ingest integration test remains blocked in this local Python environment:
   Flask is missing (`ModuleNotFoundError: flask`).
 - Local UI preview verified using synthetic data only. The preview server was stopped
-  after inspection. Phase N remains uncommitted and unpushed pending user approval.
+  after inspection. Phase N was committed and pushed as `b496869` on 16 November 2026.
 - The updated dashboard and synthetic router map were inspected in the isolated
   local preview; no production telemetry or router controls were used.
 - Render deployment state for Phase M is still unverified; do not claim Phase N is
   deployed.
+
+## Phase O — Bounded telemetry trends (16 November 2026)
+
+### Implemented locally
+- Each accepted Firestore upload adds one compact history sample to the same private
+  latest document. The rolling window is capped at 120 samples (about two hours at
+  the VM uploader's one-minute interval); it stores only timestamp, link ID,
+  available probe count, average RTT and packet loss.
+- Local-directory mode builds the same bounded view from the newest snapshot files.
+- Live Monitoring renders per-link RTT and packet-loss trends and leaves unavailable
+  measurements as gaps instead of treating them as zero.
+
+### Verification and status
+- Frontend lint: PASS, exit 0.
+- Frontend tests: PASS, 63 tests, 0 failures; existing Node experimental module
+  mocking notice remains.
+- Production build: PASS, exit 0; 2564 modules, no oversized-chunk warning.
+- Telemetry history helper: PASS, 3 tests. Incident tracker: PASS, 3 tests.
+- Diagnosis tests: PASS, 2 tests. `python3 -m compileall -q app tests`: PASS;
+  `git diff --check`: PASS.
+- Synthetic browser preview showed both charts with a sample RTT series, a packet
+  loss spike, a 10/120 window label, and readable axes. Preview server stopped.
+- Telemetry-ingest integration tests are BLOCKED in the local Python 3.14 runtime:
+  Flask and `firebase_admin` are not installed. Firestore persistence/API integration
+  remains unverified here. No cloud writes or deployment were performed.
+- Phase O remains uncommitted pending user approval.

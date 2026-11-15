@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { Activity, AlertTriangle, ArrowDownRight, ArrowUpRight, Check, CircleHelp, Clock3, GitBranch, Radio, RefreshCw, Router, ShieldCheck, Wifi, X } from 'lucide-react';
+import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useAuth } from '../contexts/authState';
 import { auth } from '../services/firebase';
 import { fetchLiveSnapshot, freshness, liveConfiguration } from '../services/liveApi';
@@ -68,6 +69,21 @@ function LiveWorkspace({ user }) {
     return 'unknown';
   };
   const linkStatus = link => selectedStatus({ status: link.status === 'healthy' && link.physical_status === 'reachable' ? 'healthy' : link.status });
+  const trendLinks = data?.topology.links || [];
+  const trendRows = (data?.history || []).map(sample => {
+    const timestamp = Date.parse(sample.observed_at);
+    const row = { time: Number.isFinite(timestamp) ? new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Unknown' };
+    for (const point of sample.links) {
+      row[`${point.link} rtt`] = point.rtt_avg_ms;
+      row[`${point.link} loss`] = point.packet_loss_percent;
+    }
+    return row;
+  });
+  const hasRttHistory = trendRows.some(row => trendLinks.some(link => Number.isFinite(row[`${link.id} rtt`])));
+  const hasLossHistory = trendRows.some(row => trendLinks.some(link => Number.isFinite(row[`${link.id} loss`])));
+  const trendColors = ['#c75439','#858047','#64876b','#5b7284','#b78545','#8e6e78'];
+  const chartLegend = <Legend wrapperStyle={{ fontSize: 10, paddingTop: 8 }} />;
+  const chartTooltip = <Tooltip contentStyle={{ border: '1px solid #e3dfd5', borderRadius: 8, background: '#fffdf9', fontSize: 11 }} />;
   return <div className="workspace-page live-page">
     <header className="workspace-header"><Link className="workspace-brand" to="/dashboard"><span className="workspace-brand-mark">N</span>NETSCOPE<span className="live-brand-suffix">/ CONTROL ROOM</span></Link><nav aria-label="Workspace"><Link to="/dashboard">Dashboard</Link><Link to="/dashboard/investigations">Investigations</Link><Link to="/dashboard/investigate">Investigate</Link><Link to="/demo">Demo</Link></nav><div className="live-header-status"><span className={`live-state-dot ${data ? 'is-connected' : state.error ? 'is-error' : ''}`} />{connectionLabel}</div></header>
     <main className="live-main">
@@ -103,6 +119,14 @@ function LiveWorkspace({ user }) {
       <section className="live-status-strip" aria-label="Connection details"><div className="status-strip-title"><span className={`live-state-dot ${data ? 'is-connected' : state.error ? 'is-error' : ''}`} /><strong>{data ? 'Snapshot received' : connectionLabel}</strong></div><div><small>LAST API CHECK</small><span>{state.checkedAt ? state.checkedAt.toLocaleTimeString() : '—'}</span></div><div><small>TELEMETRY OBSERVED</small><span>{date(data?.observed_at)}</span></div><div><small>SERVER RESPONSE</small><span>{date(data?.served_at)}</span></div><label className="live-poll-toggle"><input type="checkbox" checked={polling} disabled={!endpoint || state.denied} onChange={event => setPolling(event.target.checked)} /><span className="toggle-track" /><span>Auto-check <b>30s</b></span></label></section>
       {state.error && <div role="alert" className="live-alert-banner"><AlertTriangle size={17} /><div><strong>{state.denied ? 'Access needs attention' : 'Could not refresh the live API'}</strong><span>{state.error} {data && 'Showing the last successful snapshot.'}</span></div><button aria-label="Retry connection" onClick={() => setAttempt(value => value + 1)}><RefreshCw size={15} /></button></div>}
       {data && <>
+        <section className="live-panel live-trends-panel" aria-labelledby="trends-title">
+          <div className="live-heading"><div><p className="live-section-kicker">RECENT HISTORY <span>•</span> COLLECTED PROBES</p><h2 id="trends-title">Link performance over time</h2></div><span className="live-trend-window">{trendRows.length} / 120 samples · up to 2 hours</span></div>
+          <p>Each point is an actual probe measurement saved by the VM collector. Missing points mean no usable probe was recorded; they are not treated as zero.</p>
+          {trendRows.length ? <div className="live-trends-grid">
+            <article className="live-chart"><h3>Average round-trip time <span>milliseconds</span></h3>{hasRttHistory ? <ResponsiveContainer width="100%" height={235}><LineChart data={trendRows} margin={{ top: 8, right: 14, bottom: 2, left: -16 }}>{chartTooltip}<CartesianGrid stroke="#e8e4da" strokeDasharray="3 3" /><XAxis dataKey="time" minTickGap={28} tick={{ fill: '#707168', fontSize: 9 }} axisLine={{ stroke: '#d8d4c9' }} tickLine={false} /><YAxis width={48} domain={[0, 'auto']} tick={{ fill: '#707168', fontSize: 9 }} axisLine={false} tickLine={false} />{chartLegend}{trendLinks.map((link,index) => <Line key={link.id} type="monotone" dataKey={`${link.id} rtt`} name={link.id} stroke={trendColors[index % trendColors.length]} strokeWidth={2} dot={false} activeDot={{ r: 4 }} connectNulls={false} isAnimationActive={false} />)}</LineChart></ResponsiveContainer> : <p className="live-trend-empty">No usable RTT samples in this window.</p>}</article>
+            <article className="live-chart"><h3>Packet loss <span>percent</span></h3>{hasLossHistory ? <ResponsiveContainer width="100%" height={235}><LineChart data={trendRows} margin={{ top: 8, right: 14, bottom: 2, left: -16 }}>{chartTooltip}<CartesianGrid stroke="#e8e4da" strokeDasharray="3 3" /><XAxis dataKey="time" minTickGap={28} tick={{ fill: '#707168', fontSize: 9 }} axisLine={{ stroke: '#d8d4c9' }} tickLine={false} /><YAxis width={48} domain={[0, 100]} tick={{ fill: '#707168', fontSize: 9 }} axisLine={false} tickLine={false} />{chartLegend}{trendLinks.map((link,index) => <Line key={link.id} type="monotone" dataKey={`${link.id} loss`} name={link.id} stroke={trendColors[index % trendColors.length]} strokeWidth={2} dot={false} activeDot={{ r: 4 }} connectNulls={false} isAnimationActive={false} />)}</LineChart></ResponsiveContainer> : <p className="live-trend-empty">No usable packet-loss samples in this window.</p>}</article>
+          </div> : <div className="live-trend-empty"><strong>Trend history is building</strong><span>As the VM uploads one-minute snapshots, actual probe samples will appear here. This chart does not invent values for older telemetry.</span></div>}
+        </section>
         <section className="live-panel live-detail-panel"><div className="live-heading"><div><p className="live-section-kicker">TRIAGE <span>•</span> RECORDED OBSERVATIONS</p><h2>{selection ? `Signals for ${selection}` : 'Alarms and observations'}</h2></div>{selection && <button onClick={() => setSelection(null)}>Clear filter <X size={14} /></button>}</div><p>Rule-based findings from BGP, interface state, active probes, and available recent logs. This backend does not provide a streaming alarm feed.</p>{related.length ? related.map((item,index) => <article className="live-record" key={index}><strong><AlertTriangle size={14} />{item.type.replaceAll('_',' ')} · {item.severity}</strong><p>{item.message}</p><small>{item.evidence_source?.replaceAll('_',' ') || 'bgp'} · {item.router}{item.neighbor ? ` → ${item.neighbor}` : ''}</small></article>) : <p className="live-empty-message"><Check size={16} /> No matching findings in this stored snapshot.</p>}</section>
         <section className="live-panel"><h2>Active probe measurements</h2><p>Each row is a timestamped-at-snapshot ICMP probe direction. These measurements are observations, not a physical-layer test.</p>{(data.diagnosis.measurements || []).map(link => <article className="live-record" key={link.link}><h3>{link.link}</h3>{(link.observations || []).map((probe,index) => <p key={`${probe.router}-${index}`}><strong>{probe.router?.toUpperCase()} → {probe.target_address || probe.target}:</strong> {probe.available ? `${probe.packets_received ?? '—'}/${probe.packets_sent ?? '—'} replies · ${probe.packet_loss_percent ?? '—'}% loss · ${Number.isFinite(probe.rtt_avg_ms) ? `${probe.rtt_avg_ms} ms average RTT` : 'RTT unavailable'}` : 'Probe unavailable; this is missing evidence.'}</p>)}</article>)}{!data.diagnosis.measurements?.length && <p>No active probe measurements were stored.</p>}</section>
         <section className="live-panel"><h2>Parsed router log events</h2><p>Best-effort events from recent available container logs; an empty list does not prove that no event occurred.</p>{data.diagnosis.syslog_events?.length ? data.diagnosis.syslog_events.map((event,index) => <article className="live-record" key={`${event.router}-${index}`}><strong>{event.router} · {event.event_type?.replaceAll('_',' ')}</strong><p>{event.message}</p></article>) : <p>No matching log events were parsed or available in this snapshot.</p>}</section>

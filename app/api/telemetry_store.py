@@ -4,6 +4,7 @@ import math
 import numbers
 from datetime import datetime, timezone
 from flask import Blueprint, jsonify, request
+from app.api.telemetry_history import append_history, history_sample, valid_history
 
 telemetry_ingest = Blueprint('telemetry_ingest', __name__)
 MAX_BYTES = 500_000
@@ -100,22 +101,25 @@ def validate_snapshot(data):
 def load_live_state():
     record = document().get(timeout=8)
     if not record.exists:
-        return None, []
+        return None, [], []
     stored = record.to_dict()
     snapshot = json.loads(stored['snapshot'].decode('utf-8'))
     incidents = json.loads(stored.get('incident_history', b'[]').decode('utf-8'))
+    history = json.loads(stored.get('history', b'[]').decode('utf-8'))
     if not isinstance(incidents, list) or not all(isinstance(item, dict) for item in incidents):
         raise ValueError('Invalid incident history')
-    return snapshot, incidents
+    if not valid_history(history):
+        raise ValueError('Invalid telemetry history')
+    return snapshot, incidents, history
 
 
 def load_snapshot():
-    snapshot, _ = load_live_state()
+    snapshot, _, _ = load_live_state()
     return snapshot
 
 
 def load_incidents():
-    _, incidents = load_live_state()
+    _, incidents, _ = load_live_state()
     return incidents
 
 
@@ -133,8 +137,11 @@ def ingest():
         record = latest.get(timeout=8)
         stored = record.to_dict() if record.exists else {}
         previous = json.loads(stored.get('incident_history', b'[]').decode('utf-8'))
+        previous_history = json.loads(stored.get('history', b'[]').decode('utf-8'))
         if not isinstance(previous, list) or not all(isinstance(item, dict) for item in previous):
             raise ValueError('Invalid incident history')
+        if not valid_history(previous_history):
+            raise ValueError('Invalid telemetry history')
         diagnosis = build_diagnosis(clean)
         incidents = reconcile_incidents(
             diagnosis['candidate_root_causes'], previous,
@@ -143,11 +150,13 @@ def ingest():
         )
         # Keep active incidents and the most recent resolved records bounded.
         incidents = select_incident_records(incidents, limit=200)
+        history = append_history(previous_history, history_sample(clean))
         # The snapshot and its incident lifecycle are committed together so Live
         # never serves an incident state from a different upload.
         latest.set({
             'snapshot': json.dumps(clean).encode('utf-8'),
             'incident_history': json.dumps(incidents).encode('utf-8'),
+            'history': json.dumps(history, separators=(',', ':')).encode('utf-8'),
         }, timeout=8)
         return jsonify(status='stored'), 201
     except (ValueError, TypeError, KeyError, AttributeError):
