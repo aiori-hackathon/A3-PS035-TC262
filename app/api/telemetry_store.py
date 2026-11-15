@@ -97,11 +97,26 @@ def validate_snapshot(data):
             'measurements':safe_measurements, 'syslog_events':safe_events}
 
 
-def load_snapshot():
+def load_live_state():
     record = document().get(timeout=8)
     if not record.exists:
-        return None
-    return json.loads(record.to_dict()['snapshot'].decode('utf-8'))
+        return None, []
+    stored = record.to_dict()
+    snapshot = json.loads(stored['snapshot'].decode('utf-8'))
+    incidents = json.loads(stored.get('incident_history', b'[]').decode('utf-8'))
+    if not isinstance(incidents, list) or not all(isinstance(item, dict) for item in incidents):
+        raise ValueError('Invalid incident history')
+    return snapshot, incidents
+
+
+def load_snapshot():
+    snapshot, _ = load_live_state()
+    return snapshot
+
+
+def load_incidents():
+    _, incidents = load_live_state()
+    return incidents
 
 
 @telemetry_ingest.post('/api/telemetry/ingest')
@@ -111,8 +126,32 @@ def ingest():
         if len(raw) > MAX_BYTES:
             return jsonify(error='Snapshot too large.'), 413
         clean = validate_snapshot(json.loads(raw))
-        # Binary field is not an indexed nested telemetry map; only one record retained.
-        document().set({'snapshot': json.dumps(clean).encode('utf-8')}, timeout=8)
+        from app.api.main import build_diagnosis, telemetry_collection_complete
+        from app.diagnosis.incident_tracker import reconcile_incidents
+
+        latest = document()
+        record = latest.get(timeout=8)
+        stored = record.to_dict() if record.exists else {}
+        previous = json.loads(stored.get('incident_history', b'[]').decode('utf-8'))
+        if not isinstance(previous, list) or not all(isinstance(item, dict) for item in previous):
+            raise ValueError('Invalid incident history')
+        diagnosis = build_diagnosis(clean)
+        incidents = reconcile_incidents(
+            diagnosis['candidate_root_causes'], previous,
+            observed_at=clean['collected_at'],
+            telemetry_complete=telemetry_collection_complete(clean),
+        )
+        # Keep active incidents and the most recent resolved records bounded.
+        active = [item for item in incidents if item.get('status') == 'ACTIVE']
+        resolved = [item for item in incidents if item.get('status') != 'ACTIVE']
+        resolved_limit = max(0, 200 - len(active))
+        incidents = active + (resolved[-resolved_limit:] if resolved_limit else [])
+        # The snapshot and its incident lifecycle are committed together so Live
+        # never serves an incident state from a different upload.
+        latest.set({
+            'snapshot': json.dumps(clean).encode('utf-8'),
+            'incident_history': json.dumps(incidents).encode('utf-8'),
+        }, timeout=8)
         return jsonify(status='stored'), 201
     except (ValueError, TypeError, KeyError, AttributeError):
         return jsonify(error='Invalid telemetry snapshot.'), 400

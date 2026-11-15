@@ -75,13 +75,12 @@ def build_live_response(snapshot, diagnosis, incidents, now=None):
 def snapshot():
     if os.environ.get('NETSCOPE_TELEMETRY_STORAGE') == 'firestore':
         try:
-            from app.api.telemetry_store import load_snapshot
+            from app.api.telemetry_store import load_live_state
             from app.api.main import build_diagnosis
-            data = load_snapshot()
+            data, incidents = load_live_state()
             if data is None:
                 return jsonify(error='No telemetry has been collected.'), 404
-            result = build_live_response(data, build_diagnosis(data), [])
-            result['incidents_scope'] = 'not_collected_by_cloud_uploader'
+            result = build_live_response(data, build_diagnosis(data), incidents)
             return jsonify(result)
         except Exception:
             return jsonify(error='Telemetry storage unavailable.'), 503

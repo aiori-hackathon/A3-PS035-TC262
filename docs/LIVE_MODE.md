@@ -2,7 +2,9 @@
 
 The protected `/dashboard/live` workspace reads stored observations through
 `GET /api/live/snapshot`. It never runs collection, injects faults, writes incident
-history, or saves reports automatically. Demo fixtures remain independent.
+history, or saves reports automatically. The authenticated operator uploader stores
+each snapshot and updates its incident lifecycle on the backend. Demo fixtures remain
+independent.
 
 ## Configuration
 
@@ -50,11 +52,13 @@ request carrying Origin. Do not expose this route through public ingress.
 
 ## Data semantics and failures
 
-The newest lexically named telemetry file is read, with a 2 MB limit per file.
-The existing collector's timestamp filenames satisfy this ordering. Missing files
-return 404; invalid/unreadable/configuration failures return 503. Store snapshots
-atomically to avoid transient partial-file errors. Incident history is read only,
-with the last 50 records returned; its observation time may differ from telemetry.
+In local-directory mode, the newest lexically named telemetry file is read, with a
+2 MB limit per file. The existing collector's timestamp filenames satisfy this
+ordering. In Firestore mode, the latest bounded snapshot and incident history share
+one private server-only document. Each accepted upload updates incident state from
+its diagnosis; incomplete router collection leaves active incidents unchanged, and
+a complete snapshot without a candidate resolves them. The last 50 records are
+returned; timestamps describe observation time and may differ from API response time.
 
 Responses distinguish observation time from API response time. Older than three
 minutes is stale; unknown/future timestamps do not imply fresh data. Router

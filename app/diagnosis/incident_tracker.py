@@ -1,4 +1,5 @@
 
+from copy import deepcopy
 from datetime import datetime, timezone
 from pathlib import Path
 import json
@@ -60,21 +61,14 @@ def save_incident_history(incidents):
     temp_file.replace(INCIDENT_FILE)
 
 
-def update_incident_history(current_candidates, telemetry_complete=True):
-    """
-    Update incident history only when telemetry collection is complete.
-    """
+def reconcile_incidents(current_candidates, incidents, observed_at=None,
+                        telemetry_complete=True):
+    """Return incident history updated from one complete telemetry snapshot."""
+    incidents = deepcopy(incidents if isinstance(incidents, list) else [])
     if not telemetry_complete:
-        return load_incident_history()
+        return incidents
 
-    incidents = load_incident_history()
-    now = utc_now()
-
-    active_by_key = {
-        incident["incident_id"]: incident
-        for incident in incidents
-        if incident.get("status") == "ACTIVE"
-    }
+    now = observed_at or utc_now()
 
     seen_ids = set()
 
@@ -136,6 +130,14 @@ def update_incident_history(current_candidates, telemetry_complete=True):
             incident["status"] = "RESOLVED"
             incident["resolved_at"] = now
 
-    save_incident_history(incidents)
-
     return incidents
+
+
+def update_incident_history(current_candidates, telemetry_complete=True):
+    """Update the local incident history only after complete collection."""
+    incidents = load_incident_history()
+    if not telemetry_complete:
+        return incidents
+    updated = reconcile_incidents(current_candidates, incidents)
+    save_incident_history(updated)
+    return updated

@@ -603,3 +603,36 @@ Phase F was committed and pushed as `bf27cfb` before this work.
   edits; it must be reviewed and safely updated before following the install guide.
 - No VM state, router configuration, telemetry, cloud resource or Firestore data
   has been changed by Phase L.
+
+## Phase M — Cloud live incident lifecycle (16 November 2026)
+
+### Implemented locally
+- Firestore telemetry ingestion now derives the diagnosis from each accepted
+  snapshot and maintains bounded active/resolved incident history beside the latest
+  snapshot in the same private server-only document.
+- A continuing candidate updates its active incident; a complete healthy snapshot
+  resolves incidents no longer supported by the evidence. Incomplete router
+  collection preserves active incidents instead of falsely resolving them.
+- The read-only Live snapshot API now returns the stored incident history, allowing
+  the existing Live Monitoring incident panel to show real lifecycle records.
+- Refactored local incident reconciliation into a reusable, side-effect-free helper
+  and added regression coverage for opening, updating, resolving and incomplete
+  snapshots. Updated the Live Mode guide.
+
+### Verification and deployment status
+- Incident reconciliation tests: PASS, 2 tests.
+- Diagnosis tests: PASS, 2 tests.
+- Frontend lint: PASS, exit 0.
+- Frontend tests: PASS, 59 tests, 0 failures; Node's existing experimental module
+  mocking warning remains.
+- Frontend production build: PASS, exit 0; 1990 modules, no oversized-chunk warning.
+- `python3 -m compileall -q app tests`: PASS; `git diff --check`: PASS.
+- Telemetry-ingest integration test was added but could not run in this local Python
+  environment because Flask is not installed (`ModuleNotFoundError: flask`). The
+  backend integration result remains unverified until run in the backend environment.
+- The already deployed Render version does not include Phase M until the user approves
+  commit/push and Render completes its automatic deployment. No Firestore writes were
+  made by these code changes.
+- Live VM fault drill separately verified BGP fault detection and recovery against
+  the current deployment; that operational result is recorded in the conversation,
+  not treated as Phase M cloud incident-history verification.
