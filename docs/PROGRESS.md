@@ -558,8 +558,29 @@ Phase F was committed and pushed as `bf27cfb` before this work.
   repeated matching fault lines did not inflate the candidate score.
 - Held-out evaluation is pending; there is no labeled held-out dataset. No lab
   collection, fault injection, VM/Docker command, cloud write or deploy was
-  performed. User has authorized committing and pushing this local phase after
-  checks; remote publication is pending.
+  performed during Phase K. Phase K was committed and pushed to origin/main as
+  `b35d2b1`.
 - Populate and independently review held-out runs before using evaluator metrics in
   a presentation. Validate actual FRR logs and probe behavior against the target
   Containerlab image before the regional demo.
+
+## Phase L — Persistent VM telemetry service (16 November 2026)
+
+### Implemented locally
+- Added `deploy/systemd/netscope-telemetry.service` to run the existing uploader
+  under the `ayush` account with Docker group access, restart-on-failure, a
+  root-owned environment file, read-only host filesystem protections, and no
+  Firebase credential on the VM.
+- Added `docs/LIVE_TELEMETRY_SERVICE.md` with preflight, install, status/log,
+  stop, backend-secret and Firestore quota guidance. It explicitly notes that the
+  uploader sends bounded ICMP probes once per minute and requires an isolated lab.
+- Linked the service guide from `docs/DEPLOYMENT.md`.
+
+### Verification and boundaries
+- `git diff --check`: PASS, exit 0.
+- Unit-file verification could not run because `systemd-analyze` is not installed
+  on the macOS development host. Installation and service start are not part of
+  this change. The VM checkout remains a separate stale workspace with pending
+  edits; it must be reviewed and safely updated before following the install guide.
+- No VM state, router configuration, telemetry, cloud resource or Firestore data
+  has been changed by Phase L.

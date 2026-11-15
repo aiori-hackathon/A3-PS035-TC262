@@ -1,0 +1,32 @@
+[Unit]
+Description=NETSCOPE read-only lab telemetry uploader
+Wants=network-online.target
+After=network-online.target docker.service
+
+[Service]
+Type=simple
+User=ayush
+SupplementaryGroups=docker
+WorkingDirectory=%h/ps035
+EnvironmentFile=/etc/netscope/telemetry.env
+ExecStart=/usr/bin/python3 -m app.collector.upload
+Restart=on-failure
+RestartSec=10
+TimeoutStopSec=15
+UMask=0077
+
+# The collector reads router state and probes configured lab adjacencies. It
+# cannot write to the host filesystem or alter host networking/configuration.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target
