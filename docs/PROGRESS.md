@@ -692,5 +692,30 @@ Phase F was committed and pushed as `bf27cfb` before this work.
   loss spike, a 10/120 window label, and readable axes. Preview server stopped.
 - Telemetry-ingest integration tests are BLOCKED in the local Python 3.14 runtime:
   Flask and `firebase_admin` are not installed. Firestore persistence/API integration
-  remains unverified here. No cloud writes or deployment were performed.
-- Phase O remains uncommitted pending user approval.
+  remains unverified here. No cloud writes or deployment were performed during local
+  checks.
+- Phase O was committed and pushed as `d55ae73` on 16 November 2026.
+
+## Phase P — Direction-aware probe trends (16 November 2026)
+
+### Implemented locally
+- Historical samples now keep source and destination router for every adjacency
+  probe, preserving asymmetric RTT and packet loss rather than averaging the two
+  directions together.
+- Unavailable directions are retained as explicit gaps. Older aggregate samples
+  remain accepted and render as their original per-link series.
+- Live trend legends identify direction (for example `R1 → R2`) so operators can
+  compare the reverse path directly.
+
+### Verification and status
+- Frontend lint: PASS, exit 0. Frontend tests: PASS, 63 tests, 0 failures; Node's
+  experimental module-mocking notice remains.
+- Production build: PASS, exit 0; 2564 modules, no oversized-chunk warning.
+- Telemetry history helper: PASS, 3 tests, including asymmetric loss and unavailable
+  direction cases. Incident tracker: PASS, 3 tests; diagnosis tests: PASS, 2 tests.
+- Python compilation and `git diff --check`: PASS.
+- Synthetic browser preview showed separate `R1 → R2` and `R2 → R1` legend series
+  and a one-direction loss spike. Preview server stopped after inspection.
+- Flask/Firestore endpoint integration remains unverified because Flask and
+  `firebase_admin` are missing from the local Python environment. No cloud writes or
+  deployment were performed. Phase P remains uncommitted pending user approval.

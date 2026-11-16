@@ -14,6 +14,9 @@ test('snapshot validation rejects malformed nested render values',()=> {
   assert.throws(()=>validateLiveSnapshot({...snapshot,diagnosis:{...snapshot.diagnosis,impact_analysis:{limitations:{}}}}));
   const sample={observed_at:'2026-11-16T10:00:00Z',links:[{link:'R1-R2',packet_loss_percent:0,rtt_avg_ms:2.4,probes_available:2}]};
   assert.equal(validateLiveSnapshot({...snapshot,history:[sample]}).history.length,1);
+  const directional={...sample,links:[{link:'R1-R2',source_router:'R1',target_router:'R2',packet_loss_percent:0,rtt_avg_ms:2.4,probes_available:1}]};
+  assert.equal(validateLiveSnapshot({...snapshot,history:[directional]}).history.length,1);
+  assert.throws(()=>validateLiveSnapshot({...snapshot,history:[{...directional,links:[{...directional.links[0],target_router:undefined}]}]}));
   assert.throws(()=>validateLiveSnapshot({...snapshot,history:[{...sample,links:[{...sample.links[0],packet_loss_percent:120}]}]}));
   assert.throws(()=>validateLiveSnapshot({...snapshot,history:Array(121).fill(sample)}));
 });

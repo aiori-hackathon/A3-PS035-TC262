@@ -28,6 +28,7 @@ export function validateLiveSnapshot(data) {
     || !Array.isArray(history) || history.length > 120
     || !history.every(sample => strings(sample, ['observed_at']) && Array.isArray(sample.links) && sample.links.length <= 1000
       && sample.links.every(link => strings(link, ['link']) && Number.isInteger(link.probes_available) && link.probes_available >= 0
+        && ((link.source_router == null && link.target_router == null) || strings(link, ['source_router','target_router']))
         && ['packet_loss_percent','rtt_avg_ms'].every(key => link[key] === null || (typeof link[key] === 'number' && Number.isFinite(link[key]) && link[key] >= 0))
         && (link.packet_loss_percent === null || link.packet_loss_percent <= 100)))
     || (data.diagnosis.impact_analysis?.affected_links && (!Array.isArray(data.diagnosis.impact_analysis.affected_links) || !data.diagnosis.impact_analysis.affected_links.every(item => strings(item,['link','impact','assessment']))))) {

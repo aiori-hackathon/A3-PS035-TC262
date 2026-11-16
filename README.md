@@ -292,7 +292,7 @@ When candidate root causes are detected, the impact analyzer:
 | **Persistent Incident Tracker** | Verified | `app/diagnosis/incident_tracker.py` | Assigns IDs (`LINK-X-Y-001`), transitions `ACTIVE` ➔ `RESOLVED`. |
 | **Flask REST API (5 Routes)** | Verified | `app/api/main.py` | Provides health, telemetry, diagnosis, incidents, and refresh endpoints. |
 | **React 19 Operations Dashboard** | Verified | `frontend/src/App.jsx` | Protected workspace with read-only live snapshots, selectable topology, and incident triage. |
-| **Bounded Live Probe Trends** | Implemented | `app/api/telemetry_history.py`, `frontend/src/pages/LiveMonitoring.jsx` | Per-link RTT and packet-loss charts over the newest 120 collected samples; unavailable probes remain gaps. |
+| **Bounded Live Probe Trends** | Implemented | `app/api/telemetry_history.py`, `frontend/src/pages/LiveMonitoring.jsx` | Direction-specific RTT and packet-loss charts over the newest 120 collected samples; unavailable probes remain gaps. |
 | **Automated Unit Testing** | Verified | `tests/test_diagnosis.py` | Validates BGP analyzer and root cause correlation logic. |
 | **Active ICMP Ping Probing** | Verified | `app/collector/measurements.py` | Bounded probes on configured adjacencies; reports collection-time reachability, loss, and RTT when available. |
 | **Router Log Parsing** | Implemented | `app/diagnosis/measurements.py` | Best-effort parsing of available container logs; not a streaming syslog receiver. |

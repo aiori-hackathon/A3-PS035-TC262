@@ -7,7 +7,7 @@ MAX_HISTORY_SAMPLES = 120
 
 
 def history_sample(snapshot):
-    """Reduce one sanitized telemetry snapshot to chart-safe per-link metrics."""
+    """Reduce a snapshot to compact, direction-specific probe metrics."""
     observed_at = snapshot.get('collected_at')
     if not isinstance(observed_at, str):
         return None
@@ -22,16 +22,19 @@ def history_sample(snapshot):
     for item in snapshot.get('measurements', []):
         if not isinstance(item, dict) or not isinstance(item.get('link'), str):
             continue
-        observations = [probe for probe in item.get('observations', [])
-                        if isinstance(probe, dict) and probe.get('available') is True]
-        def average(field):
-            values = [probe.get(field) for probe in observations]
-            values = [float(value) for value in values
-                      if isinstance(value, numbers.Real) and not isinstance(value, bool)
-                      and math.isfinite(value) and value >= 0]
-            return round(sum(values) / len(values), 3) if values else None
-        links.append({'link': item['link'], 'packet_loss_percent': average('packet_loss_percent'),
-                      'rtt_avg_ms': average('rtt_avg_ms'), 'probes_available': len(observations)})
+        for probe in item.get('observations', []):
+            if not isinstance(probe, dict) or not isinstance(probe.get('router'), str) or not isinstance(probe.get('target'), str):
+                continue
+            available = probe.get('available') is True
+            def measured(field):
+                value = probe.get(field) if available else None
+                if isinstance(value, numbers.Real) and not isinstance(value, bool) and math.isfinite(value) and value >= 0:
+                    return round(float(value), 3)
+                return None
+            links.append({'link': item['link'], 'source_router': probe['router'].upper(),
+                          'target_router': probe['target'].upper(),
+                          'packet_loss_percent': measured('packet_loss_percent'),
+                          'rtt_avg_ms': measured('rtt_avg_ms'), 'probes_available': int(available)})
     return {'observed_at': observed_at, 'links': links}
 
 
@@ -61,6 +64,9 @@ def valid_history(history, limit=MAX_HISTORY_SAMPLES):
             return False
         for link in sample['links']:
             if not isinstance(link, dict) or not isinstance(link.get('link'), str) or not isinstance(link.get('probes_available'), int) or isinstance(link.get('probes_available'), bool) or link['probes_available'] < 0:
+                return False
+            source, target = link.get('source_router'), link.get('target_router')
+            if (source is None) != (target is None) or source is not None and (not isinstance(source, str) or not source or len(source) > 16) or target is not None and (not isinstance(target, str) or not target or len(target) > 16):
                 return False
             for key in ('packet_loss_percent', 'rtt_avg_ms'):
                 value = link.get(key)

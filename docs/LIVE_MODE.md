@@ -64,10 +64,10 @@ ordering. In Firestore mode, the latest bounded snapshot and incident history sh
 one private server-only document. Each accepted upload updates incident state from
 its diagnosis; incomplete router collection leaves active incidents unchanged, and
 a complete snapshot without a candidate resolves them. A compact trend ring keeps
-the newest 120 samples (about two hours at one upload per minute) with only per-link
-probe count, average RTT and packet loss; it is stored alongside the latest snapshot
-and incident history. Local-directory mode builds that view from the newest snapshot
-files. The response prioritizes all active incidents and fills the remaining slots
+the newest 120 samples (about two hours at one upload per minute) with compact
+direction-specific probe count, RTT and packet loss; it is stored alongside the latest
+snapshot and incident history. Local-directory mode builds that view from the newest
+snapshot files. The response prioritizes all active incidents and fills the remaining slots
 with the most recently closed records, up to 50 total. Timestamps describe observation
 time and may differ from API response time.
 
