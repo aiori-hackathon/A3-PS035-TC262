@@ -718,4 +718,27 @@ Phase F was committed and pushed as `bf27cfb` before this work.
   and a one-direction loss spike. Preview server stopped after inspection.
 - Flask/Firestore endpoint integration remains unverified because Flask and
   `firebase_admin` are missing from the local Python environment. No cloud writes or
-  deployment were performed. Phase P remains uncommitted pending user approval.
+  deployment were performed. Phase P was committed locally as `6b9f0d5`; it has not
+  been pushed to `origin/main`.
+
+## Phase Q — Focused trend analysis (16 November 2026)
+
+### Implemented locally
+- Live Monitoring can focus trend charts on the newest 30 minutes, 60 minutes, or
+  two hours of stored samples. Windows are anchored to the newest sample timestamp,
+  so stale telemetry is not hidden by comparing it to the browser clock.
+- Operators can filter to one topology link while retaining both directional probe
+  series. Empty samples remain chart gaps.
+- Summary metrics show average RTT, average packet loss, peak loss, and available
+  probe readings versus directional observations for the selected range and link.
+- Controls and metric cards adapt to narrow screens and retain keyboard focus styles.
+
+### Verification and status
+- Frontend lint: PASS, exit 0. Frontend tests: PASS, 66 tests, 0 failures; Node's
+  experimental module-mocking notice remains.
+- Production build: PASS, exit 0; 2565 modules transformed.
+- Telemetry history helper: PASS, 3 tests; incident tracker: PASS, 3 tests;
+  diagnosis tests: PASS, 2 tests.
+- `python3 -m compileall -q app tests`: PASS; `git diff --check`: PASS.
+- Phase Q is implemented locally and is not committed or pushed. Phase P remains
+  one local commit ahead of `origin/main`.

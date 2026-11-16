@@ -12,6 +12,11 @@ related observations; demo scenarios remain a separate, prerecorded workflow. St
 colors and counts come from the fetched snapshot, whose observation timestamp and
 freshness are shown separately from API response time.
 
+Stored directional probe history can be viewed over the newest 30 minutes, 60 minutes,
+or two hours and filtered to one topology link. RTT and loss summaries use only
+available measurements in that selected window; missing samples remain gaps. The
+window is anchored to the newest stored observation, not the browser's current time.
+
 ## Configuration
 
 Install backend dependencies with `python -m pip install -r requirements.txt` in

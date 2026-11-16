@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/authState';
 import { auth } from '../services/firebase';
 import { fetchLiveSnapshot, freshness, liveConfiguration } from '../services/liveApi';
 import { filterIncidents, incidentSpan } from '../utils/incidentHistory';
+import { filterTrendHistory, summarizeTrendHistory } from '../utils/telemetryTrends';
 import '../styles/UserDashboard.css';
 import '../styles/LiveMonitoring.css';
 
@@ -22,6 +23,8 @@ function LiveWorkspace({ user }) {
   const [now, setNow] = useState(Date.now);
   const [selection, setSelection] = useState(null);
   const [incidentFilter, setIncidentFilter] = useState('all');
+  const [trendWindow, setTrendWindow] = useState(120);
+  const [trendLink, setTrendLink] = useState('all');
   useEffect(() => { const timer = setInterval(() => setNow(Date.now()), 10000); return () => clearInterval(timer); }, []);
   useEffect(() => {
     if (!endpoint) return;
@@ -69,8 +72,10 @@ function LiveWorkspace({ user }) {
     return 'unknown';
   };
   const linkStatus = link => selectedStatus({ status: link.status === 'healthy' && link.physical_status === 'reachable' ? 'healthy' : link.status });
-  const trendSeries = [...new Set((data?.history || []).flatMap(sample => sample.links.map(point => point.source_router && point.target_router ? `${point.source_router} → ${point.target_router}` : point.link)))];
-  const trendRows = (data?.history || []).map(sample => {
+  const filteredHistory = filterTrendHistory(data?.history || [], { minutes: trendWindow, link: trendLink });
+  const trendSummary = summarizeTrendHistory(filteredHistory);
+  const trendSeries = [...new Set(filteredHistory.flatMap(sample => sample.links.map(point => point.source_router && point.target_router ? `${point.source_router} → ${point.target_router}` : point.link)))];
+  const trendRows = filteredHistory.map(sample => {
     const timestamp = Date.parse(sample.observed_at);
     const row = { time: Number.isFinite(timestamp) ? new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Unknown' };
     for (const point of sample.links) {
@@ -121,8 +126,20 @@ function LiveWorkspace({ user }) {
       {state.error && <div role="alert" className="live-alert-banner"><AlertTriangle size={17} /><div><strong>{state.denied ? 'Access needs attention' : 'Could not refresh the live API'}</strong><span>{state.error} {data && 'Showing the last successful snapshot.'}</span></div><button aria-label="Retry connection" onClick={() => setAttempt(value => value + 1)}><RefreshCw size={15} /></button></div>}
       {data && <>
         <section className="live-panel live-trends-panel" aria-labelledby="trends-title">
-          <div className="live-heading"><div><p className="live-section-kicker">RECENT HISTORY <span>•</span> COLLECTED PROBES</p><h2 id="trends-title">Link performance over time</h2></div><span className="live-trend-window">{trendRows.length} / 120 samples · up to 2 hours</span></div>
-          <p>Each point is an actual probe measurement saved by the VM collector. Missing points mean no usable probe was recorded; they are not treated as zero.</p>
+          <div className="live-heading"><div><p className="live-section-kicker">RECENT HISTORY <span>•</span> COLLECTED PROBES</p><h2 id="trends-title">Link performance over time</h2></div><span className="live-trend-window">{trendSummary.samples} samples · newest {trendWindow === 120 ? '2 hours' : `${trendWindow} minutes`}</span></div>
+          <div className="live-trend-controls">
+            <div className="live-trend-window-buttons" role="group" aria-label="Trend time range">
+              {[30, 60, 120].map(minutes => <button key={minutes} type="button" aria-pressed={trendWindow === minutes} onClick={() => setTrendWindow(minutes)}>{minutes === 120 ? '2 hours' : `${minutes} min`}</button>)}
+            </div>
+            <label className="live-trend-link-filter">Link <select aria-label="Filter trend link" value={trendLink} onChange={event => setTrendLink(event.target.value)}><option value="all">All links</option>{(data.topology.links || []).map(link => <option key={link.id} value={link.id}>{link.a.toUpperCase()} ↔ {link.b.toUpperCase()}</option>)}</select></label>
+          </div>
+          <p>Each point is an actual probe measurement saved by the VM collector. The time range is anchored to the newest stored sample. Missing points mean no usable probe was recorded; they are not treated as zero.</p>
+          <div className="live-trend-summary" aria-label="Selected trend summary">
+            <article><small>AVERAGE RTT</small><strong>{trendSummary.averageRttMs === null ? '—' : `${trendSummary.averageRttMs} ms`}</strong></article>
+            <article><small>AVERAGE LOSS</small><strong>{trendSummary.averageLossPercent === null ? '—' : `${trendSummary.averageLossPercent}%`}</strong></article>
+            <article><small>PEAK LOSS</small><strong>{trendSummary.peakLossPercent === null ? '—' : `${trendSummary.peakLossPercent}%`}</strong></article>
+            <article><small>PROBE COVERAGE</small><strong>{trendSummary.probeReadings}/{trendSummary.probeDirections}</strong></article>
+          </div>
           {trendRows.length ? <div className="live-trends-grid">
             <article className="live-chart"><h3>Average round-trip time <span>milliseconds · each direction separately</span></h3>{hasRttHistory ? <ResponsiveContainer width="100%" height={235}><LineChart data={trendRows} margin={{ top: 8, right: 14, bottom: 2, left: -16 }}>{chartTooltip}<CartesianGrid stroke="#e8e4da" strokeDasharray="3 3" /><XAxis dataKey="time" minTickGap={28} tick={{ fill: '#707168', fontSize: 9 }} axisLine={{ stroke: '#d8d4c9' }} tickLine={false} /><YAxis width={48} domain={[0, 'auto']} tick={{ fill: '#707168', fontSize: 9 }} axisLine={false} tickLine={false} />{chartLegend}{trendSeries.map((series,index) => <Line key={series} type="monotone" dataKey={`${series} rtt`} name={series} stroke={trendColors[index % trendColors.length]} strokeWidth={2} dot={false} activeDot={{ r: 4 }} connectNulls={false} isAnimationActive={false} />)}</LineChart></ResponsiveContainer> : <p className="live-trend-empty">No usable RTT samples in this window.</p>}</article>
             <article className="live-chart"><h3>Packet loss <span>percent · each direction separately</span></h3>{hasLossHistory ? <ResponsiveContainer width="100%" height={235}><LineChart data={trendRows} margin={{ top: 8, right: 14, bottom: 2, left: -16 }}>{chartTooltip}<CartesianGrid stroke="#e8e4da" strokeDasharray="3 3" /><XAxis dataKey="time" minTickGap={28} tick={{ fill: '#707168', fontSize: 9 }} axisLine={{ stroke: '#d8d4c9' }} tickLine={false} /><YAxis width={48} domain={[0, 100]} tick={{ fill: '#707168', fontSize: 9 }} axisLine={false} tickLine={false} />{chartLegend}{trendSeries.map((series,index) => <Line key={series} type="monotone" dataKey={`${series} loss`} name={series} stroke={trendColors[index % trendColors.length]} strokeWidth={2} dot={false} activeDot={{ r: 4 }} connectNulls={false} isAnimationActive={false} />)}</LineChart></ResponsiveContainer> : <p className="live-trend-empty">No usable packet-loss samples in this window.</p>}</article>
