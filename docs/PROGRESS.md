@@ -827,6 +827,8 @@ Phase F was committed and pushed as `bf27cfb` before this work.
 - If a signed-out visitor chooses Save in the demo, the selected scenario is carried
   through login and restored on return. Demo scenario selection is reflected in its
   URL so refresh preserves that context.
+- Live Monitoring now links directly into Fault Investigation with the Live source
+  preselected; switching sources keeps the choice in the URL.
 - Frontend lint: PASS. Production build: PASS (2,566 modules); no chunk-size warning.
 - Browser-based visual review was unavailable in this session, so the flow was
   checked by source/build rather than captured in a live browser.

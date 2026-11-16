@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useLocation, useNavigate } from 'react-router';
 import { useAuth } from '../contexts/authState';
 import { auth } from '../services/firebase';
 import { liveConfiguration, freshness } from '../services/liveApi';
@@ -14,12 +14,22 @@ const text = value => value == null ? 'Not recorded' : typeof value === 'object'
 const date = value => value && Number.isFinite(Date.parse(value)) ? new Date(value).toLocaleString() : 'Not recorded';
 export default function FaultInvestigation() {
   const { currentUser } = useAuth();
-  const [source, setSource] = useState('demo');
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [source, setSource] = useState(() => new URLSearchParams(location.search).get('source') === 'live' ? 'live' : 'demo');
   const [scenarioId, setScenarioId] = useState('healthy');
+  function changeSource(nextSource) {
+    setSource(nextSource);
+    const query = new URLSearchParams(location.search);
+    if (nextSource === 'live') query.set('source', 'live');
+    else query.delete('source');
+    const queryString = query.toString();
+    navigate({ pathname: location.pathname, search: queryString ? `?${queryString}` : '', hash: location.hash }, { replace: true });
+  }
   return <div className="workspace-page live-page fault-page">
     <header className="workspace-header"><Link className="workspace-brand" to="/dashboard">NETSCOPE.</Link><nav aria-label="Workspace"><Link to="/dashboard">Dashboard</Link><Link to="/dashboard/investigations">My Investigations</Link><Link to="/dashboard/live">Live monitoring</Link><Link to="/demo">Demo</Link></nav></header>
     <main className="live-main"><p className="live-eyebrow">EVIDENCE / HYPOTHESES / VERIFICATION</p><h1>Fault investigation</h1><p>Select a source, review a fixed diagnostic result, then preserve the evidence. Changing source clears the current result.</p>
-      <section className="live-panel"><h2>1. Choose observations</h2><div className="fault-selectors"><label>Source<select value={source} onChange={event => setSource(event.target.value)}><option value="demo">Demo · simulated</option><option value="live">Live · stored telemetry</option></select></label>{source === 'demo' && <label>Recorded scenario<select value={scenarioId} onChange={event => setScenarioId(event.target.value)}>{SCENARIO_IDS.map(id => <option key={id} value={id}>{text(id)}</option>)}</select></label>}</div></section>
+      <section className="live-panel"><h2>1. Choose observations</h2><div className="fault-selectors"><label>Source<select value={source} onChange={event => changeSource(event.target.value)}><option value="demo">Demo · simulated</option><option value="live">Live · stored telemetry</option></select></label>{source === 'demo' && <label>Recorded scenario<select value={scenarioId} onChange={event => setScenarioId(event.target.value)}>{SCENARIO_IDS.map(id => <option key={id} value={id}>{text(id)}</option>)}</select></label>}</div></section>
       <InvestigationRun key={`${currentUser.uid}:${source}:${scenarioId}`} user={currentUser} source={source} scenarioId={scenarioId} />
     </main>
   </div>;
