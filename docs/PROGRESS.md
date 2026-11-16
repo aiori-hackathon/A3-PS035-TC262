@@ -832,3 +832,15 @@ Phase F was committed and pushed as `bf27cfb` before this work.
 - Frontend lint: PASS. Production build: PASS (2,566 modules); no chunk-size warning.
 - Browser-based visual review was unavailable in this session, so the flow was
   checked by source/build rather than captured in a live browser.
+
+## Live probe measurements redesign — 17 November 2026
+- Replaced the long plain-text probe list with a responsive link reachability view.
+  Each adjacency groups its two directions and shows reachability state, replies,
+  packet loss, average RTT, and a reply-rate bar.
+- Added a compact snapshot summary for measured directions, ICMP replies, and
+  aggregate packet loss. Unavailable measurements are labeled as missing evidence;
+  they are not represented as successful zero-loss probes.
+- Kept the point-in-time ICMP limitation visible in the section. Status colors and
+  labels distinguish reachable, partial-loss, no-reply, and unmeasured states.
+- `npm run lint`: PASS. `npm run build`: PASS (2,566 modules). `git diff --check`:
+  PASS. No browser-based visual review was available in this session.

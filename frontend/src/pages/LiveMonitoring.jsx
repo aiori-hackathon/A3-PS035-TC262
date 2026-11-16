@@ -11,6 +11,13 @@ import '../styles/UserDashboard.css';
 import '../styles/LiveMonitoring.css';
 
 const date = value => value && Number.isFinite(Date.parse(value)) ? new Date(value).toLocaleString() : 'Not available';
+const probeState = probe => {
+  if (!probe?.available || !Number.isFinite(probe.packet_loss_percent)) return { label: 'Not measured', tone: 'unknown' };
+  if (probe.packet_loss_percent >= 100) return { label: 'No replies', tone: 'critical' };
+  if (probe.packet_loss_percent > 0) return { label: 'Some packet loss', tone: 'warning' };
+  return { label: 'Reachable', tone: 'good' };
+};
+const probeRtt = value => Number.isFinite(value) ? `${value < 1 ? value.toFixed(3) : value.toFixed(1)} ms` : '—';
 export default function LiveMonitoring() {
   const { currentUser } = useAuth();
   return <LiveWorkspace key={currentUser.uid} user={currentUser} />;
@@ -59,6 +66,12 @@ function LiveWorkspace({ user }) {
   const resolvedIncidentCount = filterIncidents(data?.incidents, 'resolved').length;
   const reportingRouters = data?.routers.filter(router => router.collection_ok).length || 0;
   const alertCount = findings.length;
+  const probeLinks = data?.diagnosis.measurements || [];
+  const probeDirections = probeLinks.flatMap(link => link.observations || []);
+  const measuredProbes = probeDirections.filter(probe => probe.available && Number.isFinite(probe.packets_sent) && probe.packets_sent > 0);
+  const packetsSent = measuredProbes.reduce((total, probe) => total + probe.packets_sent, 0);
+  const packetsReceived = measuredProbes.reduce((total, probe) => total + (probe.packets_received || 0), 0);
+  const aggregateLoss = packetsSent ? Math.round(((packetsSent - packetsReceived) / packetsSent) * 1000) / 10 : null;
   const connectionLabel = !endpoint ? 'Not configured' : state.loading ? 'Connecting' : state.error ? state.denied ? 'Access denied' : 'Backend unavailable' : data ? 'Connected' : 'Waiting for telemetry';
   const topologyNodes = data?.routers.map((router, index, routers) => {
     const angle = (Math.PI * 2 * index / Math.max(routers.length, 1)) - Math.PI / 2;
@@ -146,7 +159,39 @@ function LiveWorkspace({ user }) {
           </div> : <div className="live-trend-empty"><strong>Trend history is building</strong><span>As the VM uploads one-minute snapshots, actual probe samples will appear here. This chart does not invent values for older telemetry.</span></div>}
         </section>
         <section className="live-panel live-detail-panel"><div className="live-heading"><div><p className="live-section-kicker">TRIAGE <span>•</span> RECORDED OBSERVATIONS</p><h2>{selection ? `Signals for ${selection}` : 'Alarms and observations'}</h2></div>{selection && <button onClick={() => setSelection(null)}>Clear filter <X size={14} /></button>}</div><p>Rule-based findings from BGP, interface state, active probes, and available recent logs. This backend does not provide a streaming alarm feed.</p>{related.length ? related.map((item,index) => <article className="live-record" key={index}><strong><AlertTriangle size={14} />{item.type.replaceAll('_',' ')} · {item.severity}</strong><p>{item.message}</p><small>{item.evidence_source?.replaceAll('_',' ') || 'bgp'} · {item.router}{item.neighbor ? ` → ${item.neighbor}` : ''}</small></article>) : <p className="live-empty-message"><Check size={16} /> No matching findings in this stored snapshot.</p>}</section>
-        <section className="live-panel"><h2>Active probe measurements</h2><p>Each row is a timestamped-at-snapshot ICMP probe direction. These measurements are observations, not a physical-layer test.</p>{(data.diagnosis.measurements || []).map(link => <article className="live-record" key={link.link}><h3>{link.link}</h3>{(link.observations || []).map((probe,index) => <p key={`${probe.router}-${index}`}><strong>{probe.router?.toUpperCase()} → {probe.target_address || probe.target}:</strong> {probe.available ? `${probe.packets_received ?? '—'}/${probe.packets_sent ?? '—'} replies · ${probe.packet_loss_percent ?? '—'}% loss · ${Number.isFinite(probe.rtt_avg_ms) ? `${probe.rtt_avg_ms} ms average RTT` : 'RTT unavailable'}` : 'Probe unavailable; this is missing evidence.'}</p>)}</article>)}{!data.diagnosis.measurements?.length && <p>No active probe measurements were stored.</p>}</section>
+        <section className="live-panel live-probes-panel" aria-labelledby="probe-title">
+          <div className="live-heading live-probes-heading">
+            <div><p className="live-section-kicker">ACTIVE PROBES <span>•</span> LATEST SNAPSHOT</p><h2 id="probe-title">Link reachability</h2><p>Directional ICMP checks between adjacent routers. These are point-in-time observations, not a physical-layer test.</p></div>
+            <span className="live-probe-coverage">{measuredProbes.length}/{probeDirections.length} directions measured</span>
+          </div>
+          <div className="live-probe-summary" aria-label="Probe summary">
+            <article><span>Probe directions</span><strong>{probeDirections.length}</strong><small>Across {probeLinks.length} links</small></article>
+            <article><span>Replies received</span><strong>{packetsReceived}<small> / {packetsSent}</small></strong><small>ICMP packets</small></article>
+            <article><span>Aggregate packet loss</span><strong className={aggregateLoss === null ? '' : aggregateLoss > 0 ? 'probe-warn-value' : 'probe-good-value'}>{aggregateLoss === null ? '—' : `${aggregateLoss}%`}</strong><small>From measured directions</small></article>
+          </div>
+          {probeLinks.length ? <div className="live-probe-grid">{probeLinks.map(link => {
+            const observations = link.observations || [];
+            const measured = observations.filter(probe => probe.available && Number.isFinite(probe.packet_loss_percent));
+            const linkTone = measured.some(probe => probe.packet_loss_percent >= 100) ? 'critical' : measured.some(probe => probe.packet_loss_percent > 0) ? 'warning' : measured.length === observations.length && measured.length > 0 ? 'good' : 'unknown';
+            const linkLabel = linkTone === 'critical' ? 'No replies' : linkTone === 'warning' ? 'Packet loss' : linkTone === 'good' ? 'Replies both ways' : 'Partial coverage';
+            return <article className={`live-probe-link tone-${linkTone}`} key={link.link}>
+              <div className="live-probe-link-head"><div><span>ADJACENCY</span><h3>{link.link}</h3></div><span className={`live-probe-status tone-${linkTone}`}><i />{linkLabel}</span></div>
+              <div className="live-probe-directions">{observations.map((probe, index) => {
+                const state = probeState(probe);
+                const sent = Number.isFinite(probe.packets_sent) ? probe.packets_sent : 0;
+                const received = Number.isFinite(probe.packets_received) ? probe.packets_received : 0;
+                const replyRate = sent > 0 ? Math.max(0, Math.min(100, received / sent * 100)) : 0;
+                return <div className={`live-probe-direction tone-${state.tone}`} key={`${probe.router}-${probe.target_address || index}`}>
+                  <div className="live-probe-direction-head"><div><strong>{probe.router?.toUpperCase() || 'Router'} <span>to</span> {probe.target?.toUpperCase() || 'peer'}</strong><small>{probe.target_address || 'Target not recorded'}</small></div><span className={`live-probe-status tone-${state.tone}`}><i />{state.label}</span></div>
+                  {probe.available ? <>
+                    <div className="live-probe-metrics"><div><strong>{probe.packets_received ?? '—'}<small>/{probe.packets_sent ?? '—'}</small></strong><span>Replies</span></div><div><strong>{Number.isFinite(probe.packet_loss_percent) ? `${probe.packet_loss_percent}%` : '—'}</strong><span>Packet loss</span></div><div><strong>{probeRtt(probe.rtt_avg_ms)}</strong><span>Average RTT</span></div></div>
+                    <div className="live-probe-meter" role="img" aria-label={`${probe.packets_received ?? 0} of ${probe.packets_sent ?? 0} probe replies`}><span style={{ width: `${replyRate}%` }} /></div>
+                  </> : <p className="live-probe-unavailable">No usable ping summary was recorded for this direction.</p>}
+                </div>;
+              })}</div>
+            </article>;
+          })}</div> : <p className="live-empty-message">No active probe measurements were stored in this snapshot.</p>}
+        </section>
         <section className="live-panel"><h2>Parsed router log events</h2><p>Best-effort events from recent available container logs; an empty list does not prove that no event occurred.</p>{data.diagnosis.syslog_events?.length ? data.diagnosis.syslog_events.map((event,index) => <article className="live-record" key={`${event.router}-${index}`}><strong>{event.router} · {event.event_type?.replaceAll('_',' ')}</strong><p>{event.message}</p></article>) : <p>No matching log events were parsed or available in this snapshot.</p>}</section>
         <section className="live-panel"><h2>Ranked hypotheses and evidence</h2>{data.diagnosis.diagnosis_status === 'insufficient_evidence' && <p role="status">{data.diagnosis.unsupported_conclusion || 'Available evidence does not support a specific fault conclusion.'}</p>}{data.diagnosis.candidate_root_causes.length ? data.diagnosis.candidate_root_causes.map((cause,index) => <article className="live-record" key={cause.candidate_link}><h3>#{cause.rank || index + 1} {cause.candidate_link} · {cause.confidence_label || 'unrated'} confidence · score {cause.score ?? 'not available'}</h3><p>{cause.assessment}</p><p><strong>Supporting signals ({cause.supporting_signals?.length || 0}):</strong> {cause.evidence || 'Not recorded'}</p><button onClick={() => setSelection(cause.candidate_link)}>Inspect related observations</button></article>) : data.diagnosis.diagnosis_status !== 'insufficient_evidence' && <p>No correlated hypotheses in this snapshot.</p>}
           {data.diagnosis.optional_model && <div className="live-optional-model"><h3>Optional model comparison <span>EXPERIMENTAL</span></h3><p>{data.diagnosis.optional_model.reason}</p>{data.diagnosis.optional_model.status === 'available' && <><p>Method: {data.diagnosis.optional_model.algorithm} · trained on {data.diagnosis.optional_model.training_runs} runs. Relative model scores are not calibrated probabilities.</p>{data.diagnosis.optional_model.predictions.map(item => <p key={item.candidate_link}><strong>{item.candidate_link}</strong> · relative score {item.relative_score}</p>)}<small>Signals considered: {data.diagnosis.optional_model.explanation.join(', ') || 'none'}</small></>}</div>}
