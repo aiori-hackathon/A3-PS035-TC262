@@ -22,7 +22,7 @@ import {
   Search,
   ShieldCheck,
 } from "lucide-react";
-import { Link } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 import { useDemoScenario } from "./hooks/useDemoScenario";
 import { findingCategory, investigationContext } from "./services/demoScenarios";
 import "./App.css";
@@ -98,7 +98,12 @@ function formatDate(value) {
 }
 
 function App() {
-  const [scenarioId, setScenarioId] = useState("healthy");
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [scenarioId, setScenarioId] = useState(() => {
+    const requested = new URLSearchParams(location.search).get("scenario");
+    return SCENARIOS.some((scenario) => scenario.id === requested) ? requested : "healthy";
+  });
   const [selectedLink, setSelectedLink] = useState(null);
   const [view, setView] = useState("overview");
   const [reload, setReload] = useState(0);
@@ -155,6 +160,11 @@ function App() {
   function clearSelection() { setSelectedLink(null); setSelectedRouter(null); }
   function changeScenario(id) {
     setScenarioId(id);
+    const query = new URLSearchParams(location.search);
+    if (id === "healthy") query.delete("scenario");
+    else query.set("scenario", id);
+    const queryString = query.toString();
+    navigate({ pathname: location.pathname, search: queryString ? `?${queryString}` : "", hash: location.hash }, { replace: true });
     clearSelection();
     setView("overview");
   }

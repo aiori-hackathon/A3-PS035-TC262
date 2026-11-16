@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 import { useAuth } from "../contexts/authState";
 import { saveInvestigation } from "../services/investigations";
 
@@ -10,6 +10,7 @@ export default function SaveInvestigation({ scenario }) {
 
 function SaveSnapshot({ currentUser, scenario }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const [saving, setSaving] = useState(false);
   const [savedId, setSavedId] = useState(null);
   const [error, setError] = useState("");
@@ -20,7 +21,13 @@ function SaveSnapshot({ currentUser, scenario }) {
   async function handleSave() {
     if (!scenario || pending.current || savedId) return;
     if (!currentUser) {
-      navigate("/login", { state: { from: { pathname: "/demo" } } });
+      const query = new URLSearchParams(location.search);
+      if (location.pathname === "/demo" && scenario.scenario?.id) {
+        query.set("scenario", scenario.scenario.id);
+      }
+      const queryString = query.toString();
+      const search = queryString ? `?${queryString}` : "";
+      navigate("/login", { state: { from: { pathname: location.pathname, search, hash: location.hash } } });
       return;
     }
     pending.current = true;
