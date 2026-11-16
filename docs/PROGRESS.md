@@ -844,3 +844,6 @@ Phase F was committed and pushed as `bf27cfb` before this work.
   labels distinguish reachable, partial-loss, no-reply, and unmeasured states.
 - `npm run lint`: PASS. `npm run build`: PASS (2,566 modules). `git diff --check`:
   PASS. No browser-based visual review was available in this session.
+- Follow-up readability pass: increased metric, label, status, and router text sizes;
+  strengthened secondary-text contrast; enlarged cards and spacing; switched link
+  cards to a single column at intermediate widths to keep directional details legible.
