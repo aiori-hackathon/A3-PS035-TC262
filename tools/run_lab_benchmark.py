@@ -7,6 +7,7 @@ from pathlib import Path
 import stat
 import sys
 import subprocess
+import time
 from uuid import uuid4
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -88,7 +89,9 @@ def _collect_to(directory):
 
 
 def run_benchmark(scenario_ids, output_dir, collector=_collect_to, apply_fault=None, restore_fault=None,
-                  diagnosis_builder=None, collection_complete=None, lab_verifier=None, recovery_checker=None):
+                  diagnosis_builder=None, collection_complete=None, lab_verifier=None, recovery_checker=None,
+                  recovery_timeout=240, recovery_poll_interval=15, sleep_fn=time.sleep,
+                  clock_fn=time.monotonic):
     """Collect baseline, fault and recovery records; always attempt rollback."""
     if diagnosis_builder is None or collection_complete is None:
         from app.api.main import build_diagnosis, telemetry_collection_complete
@@ -126,10 +129,17 @@ def run_benchmark(scenario_ids, output_dir, collector=_collect_to, apply_fault=N
                 raise RuntimeError(f"RESTORE FAILED for {scenario_id}. Stop the benchmark and recover the isolated lab manually.") from failure
         if failure:
             raise failure
-        recovered, recovered_path = collector(output_dir)
         checker = recovery_checker or (lambda scenario, before, after: verify_scenario_recovery(scenario, before, after))
-        if not collection_complete(recovered) or not checker(scenario_id, baseline, recovered):
-            raise RuntimeError(f"Recovery check failed after {scenario_id}; no further faults will be applied.")
+        deadline = clock_fn() + recovery_timeout
+        while True:
+            recovered, recovered_path = collector(output_dir)
+            if collection_complete(recovered) and checker(scenario_id, baseline, recovered):
+                break
+            remaining = deadline - clock_fn()
+            if remaining <= 0:
+                raise RuntimeError(f"Recovery check failed after {scenario_id}; no further faults will be applied.")
+            print(f"{scenario_id}: waiting for lab recovery; retrying in {min(recovery_poll_interval, remaining):.0f}s")
+            sleep_fn(min(recovery_poll_interval, remaining))
         diagnosis = diagnosis_builder(fault_snapshot)
         run_id = f"{scenario_id}-{uuid4().hex[:12]}"
         run_records.append({"held_out": False, "run_id": run_id, "scenario_id": scenario_id,

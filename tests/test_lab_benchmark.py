@@ -84,6 +84,51 @@ class LabBenchmarkTests(unittest.TestCase):
             self.assertEqual([row["scenario_id"] for row in map(json.loads, manifest.read_text().splitlines())], ["healthy_baseline", "bgp_r1_r2_shutdown"])
         self.assertEqual(events, ["verify", "collect", "apply:bgp_r1_r2_shutdown", "collect", "restore:bgp_r1_r2_shutdown", "collect"])
 
+    def test_benchmark_retries_recovery_until_state_matches(self):
+        events = []
+        samples = iter([snapshot(), snapshot(), snapshot(), snapshot()])
+        checks = iter([False, True])
+
+        def collect(_directory):
+            events.append("collect")
+            return next(samples), Path("/tmp/run.json")
+
+        with TemporaryDirectory() as directory:
+            manifest = run_benchmark(
+                ["bgp_r1_r2_shutdown"], Path(directory), collector=collect,
+                apply_fault=lambda _scenario: events.append("apply") or 0,
+                restore_fault=lambda _scenario: events.append("restore") or 0,
+                diagnosis_builder=lambda _snapshot: {"candidate_root_causes": [], "diagnosis_status": "insufficient_evidence"},
+                collection_complete=lambda _snapshot: True, lab_verifier=lambda: None,
+                recovery_checker=lambda *_args: next(checks),
+                sleep_fn=lambda delay: events.append(f"wait:{delay:g}"),
+            )
+            self.assertEqual(len(manifest.read_text().splitlines()), 2)
+        self.assertEqual(events, ["collect", "apply", "collect", "restore", "collect", "wait:15", "collect"])
+
+    def test_recovery_timeout_stops_before_appending_fault_label(self):
+        events = []
+        now = [0]
+
+        def collect(_directory):
+            events.append("collect")
+            return snapshot(), Path("/tmp/run.json")
+
+        def sleep(delay):
+            now[0] += delay
+
+        with TemporaryDirectory() as directory, self.assertRaisesRegex(RuntimeError, "no further faults"):
+            run_benchmark(
+                ["bgp_r1_r2_shutdown"], Path(directory), collector=collect,
+                apply_fault=lambda _scenario: events.append("apply") or 0,
+                restore_fault=lambda _scenario: events.append("restore") or 0,
+                diagnosis_builder=lambda _snapshot: {"candidate_root_causes": [], "diagnosis_status": "insufficient_evidence"},
+                collection_complete=lambda _snapshot: True, lab_verifier=lambda: None,
+                recovery_checker=lambda *_args: False, recovery_timeout=10,
+                recovery_poll_interval=10, sleep_fn=sleep, clock_fn=lambda: now[0],
+            )
+        self.assertEqual(events, ["collect", "apply", "collect", "restore", "collect", "collect"])
+
     def test_failed_apply_still_attempts_restore_and_never_collects_fault_result(self):
         events = []
         samples = iter([snapshot()])

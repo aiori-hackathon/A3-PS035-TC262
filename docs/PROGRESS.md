@@ -791,3 +791,13 @@ Phase F was committed and pushed as `bf27cfb` before this work.
   proof still needed. The held-out dataset/run and GitHub ownership transfer remain
   external gates. `origin` currently points to `Loki-7865/A3-PS035-TC262`; no
   repository ownership or collaborator settings were changed.
+
+### Recovery convergence hardening
+- The first benchmark version compared only one snapshot immediately after restore.
+  This could stop a valid run while a restored BGP session was still reconnecting.
+- The runner now recollects every 15 seconds for up to four minutes and proceeds
+  only after all required observations match the healthy baseline. A timeout stops
+  before the next fault; the runbook documents this bounded wait.
+- Added regression coverage for delayed recovery and timeout behavior. This is a
+  local change only; it has not been deployed or pushed, and the live VM benchmark
+  has not yet been run.

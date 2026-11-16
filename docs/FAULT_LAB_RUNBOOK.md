@@ -81,8 +81,11 @@ does not run the collector or fault controller.
    `--scenario healthy_baseline` for healthy snapshots, whose expected link is null.
 6. For repeatable non-held-out collection, the guarded runner can sequence all five
    scenarios and require interface/BGP recovery to match the healthy baseline before
-   it proceeds. Run only on the isolated VM, with a protected output directory and
-   explicit confirmation. Dry run is safe and does not access Docker:
+   it proceeds. After restoration it polls fresh snapshots every 15 seconds, for up
+   to four minutes, to allow BGP sessions to reconverge. If recovery still does not
+   match, it stops before applying another fault. Run only on the isolated VM, with
+   a protected output directory and explicit confirmation. Dry run is safe and does
+   not access Docker:
 
    ```sh
    python tools/run_lab_benchmark.py --output-dir /tmp/netscope-benchmark --dry-run
