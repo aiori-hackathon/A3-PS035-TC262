@@ -85,9 +85,11 @@ does not run the collector or fault controller.
    to four minutes, to allow BGP sessions to reconverge. If recovery still does not
    match, it stops before applying another fault. The CLI uses the local diagnosis
    pipeline and does not require Flask or Firebase Admin; the hosted API dependencies
-   are not needed for this lab tool. Run only on the isolated VM, with a protected
-   output directory and explicit confirmation. Dry run is safe and does not access
-   Docker:
+   are not needed for this lab tool. Recovery compares whether each BGP session is
+   established, not its transient prefix count; after `route_r5_withdrawal`, it also
+   confirms R4 has relearned `192.168.5.1/32`. Run only on the isolated VM, with a
+   protected output directory and explicit confirmation. Dry run is safe and does
+   not access Docker:
 
    ```sh
    python tools/run_lab_benchmark.py --output-dir /tmp/netscope-benchmark --dry-run

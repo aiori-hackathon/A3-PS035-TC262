@@ -41,7 +41,8 @@ def operational_signature(snapshot):
             except ValueError:
                 continue
             if fields[1].isdigit() and fields[2].isdigit():
-                neighbors[(name, neighbor)] = fields[9]
+                state = fields[9]
+                neighbors[(name, neighbor)] = "established" if state.isdigit() else state.lower()
     expected_interfaces = {(link[side], link[f"{side}_endpoint"]["interface"]) for link in topology["links"] for side in ("a", "b")}
     expected_neighbors = {(link[side], link[f"{other}_endpoint"]["address"]) for link in topology["links"] for side, other in (("a", "b"), ("b", "a"))}
     if not expected_interfaces.issubset(interfaces) or not expected_neighbors.issubset(neighbors):
@@ -69,6 +70,15 @@ def verify_scenario_recovery(scenario_id, baseline, recovered, runner=subprocess
         except (OSError, subprocess.TimeoutExpired):
             return False
         return result.returncode == 0 and "netem" not in result.stdout.lower()
+    if scenario_id == "route_r5_withdrawal":
+        try:
+            result = runner(["docker", "exec", "clab-ps035-r4", "vtysh", "-c",
+                             "show bgp ipv4 unicast 192.168.5.1/32"],
+                            capture_output=True, text=True, timeout=8, check=False)
+        except (OSError, subprocess.TimeoutExpired):
+            return False
+        output = result.stdout.lower()
+        return result.returncode == 0 and "192.168.5.1/32" in output and "not in table" not in output
     return True
 
 

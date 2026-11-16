@@ -793,16 +793,17 @@ Phase F was committed and pushed as `bf27cfb` before this work.
   repository ownership or collaborator settings were changed.
 
 ### Recovery convergence hardening
-- The first benchmark version compared only one snapshot immediately after restore.
-  This could stop a valid run while a restored BGP session was still reconnecting.
-- The runner now recollects every 15 seconds for up to four minutes and proceeds
-  only after all required observations match the healthy baseline. A timeout stops
-  before the next fault; the runbook documents this bounded wait.
-- Added regression coverage for delayed recovery and timeout behavior. This is a
-  local change only; it has not been deployed or pushed, and the live VM benchmark
-  has not yet been run.
+- The initial benchmark compared one snapshot immediately after restore. The
+  recovery poll now checks every 15 seconds for up to four minutes. That fix was
+  committed and pushed as `91f2257`.
 - VM preflight exposed an unnecessary import of the hosted Flask/Firebase API from
   the local benchmark CLI. Diagnosis and collection-completeness logic now live in
-  framework-independent modules shared by the API and CLI, so lab tools can run
-  without installing hosted-service packages. This follow-up is local and awaits
-  review before commit/push.
+  framework-independent modules shared by the API and CLI. This fix was committed
+  and pushed as `faf228d`; no hosted-service packages need to be installed on the VM
+  for the lab CLI.
+- First VM benchmark safely restored `link_r2_r4_down` and stopped before the next
+  fault. Investigation showed interfaces were UP and BGP sessions established, but
+  prefix counts differed from the baseline. A local follow-up now compares session
+  establishment independently of transient prefix totals and explicitly verifies
+  R4 relearns the withdrawn R5 prefix in that scenario. It has not been committed
+  or pushed; only the first scenario was attempted, and the other four have not run.

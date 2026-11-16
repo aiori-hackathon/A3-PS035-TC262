@@ -39,6 +39,8 @@ class LabBenchmarkTests(unittest.TestCase):
         baseline = snapshot()
         recovered = snapshot()
         self.assertTrue(recovery_matches(baseline, recovered))
+        # Prefix totals can change during convergence; session establishment must not.
+        self.assertTrue(recovery_matches(baseline, snapshot(neighbor_override={("r1", "10.0.12.2"): "3"})))
         interface = ("r2", "eth2")
         self.assertFalse(recovery_matches(baseline, snapshot({interface: "DOWN"})))
         neighbor = ("r1", "10.0.12.2")
@@ -56,6 +58,15 @@ class LabBenchmarkTests(unittest.TestCase):
         self.assertTrue(verify_scenario_recovery("degraded_r2_r4", snapshot(), snapshot(), runner=lambda *_args, **_kwargs: Result()))
         Result.stdout = "qdisc netem 10: root delay 200ms loss 20%\\n"
         self.assertFalse(verify_scenario_recovery("degraded_r2_r4", snapshot(), snapshot(), runner=lambda *_args, **_kwargs: Result()))
+
+    def test_route_withdrawal_recovery_requires_prefix_to_be_present_on_r4(self):
+        class Result:
+            returncode = 0
+            stdout = "BGP routing table entry for 192.168.5.1/32\\nPaths: (1 available, best #1)"
+
+        self.assertTrue(verify_scenario_recovery("route_r5_withdrawal", snapshot(), snapshot(), runner=lambda *_args, **_kwargs: Result()))
+        Result.stdout = "% Network not in table\\n"
+        self.assertFalse(verify_scenario_recovery("route_r5_withdrawal", snapshot(), snapshot(), runner=lambda *_args, **_kwargs: Result()))
 
     def test_benchmark_orders_apply_restore_and_recovery_before_label_append(self):
         events = []
