@@ -803,7 +803,16 @@ Phase F was committed and pushed as `bf27cfb` before this work.
   for the lab CLI.
 - First VM benchmark safely restored `link_r2_r4_down` and stopped before the next
   fault. Investigation showed interfaces were UP and BGP sessions established, but
-  prefix counts differed from the baseline. A local follow-up now compares session
-  establishment independently of transient prefix totals and explicitly verifies
-  R4 relearns the withdrawn R5 prefix in that scenario. It has not been committed
-  or pushed; only the first scenario was attempted, and the other four have not run.
+  prefix counts differed from the baseline. The recovery checker was corrected to
+  compare session establishment independently of transient prefix totals and to
+  explicitly verify R4 relearns the withdrawn R5 prefix. This fix was committed and
+  pushed as `424b9ac`.
+- On the Ubuntu VM, `python3 -S -m unittest tests.test_lab_benchmark` passed all 8
+  tests, `fault_lab check` found all five fixed containers running, and the guarded
+  benchmark completed all five scenarios. Each fault snapshot was followed by a
+  verified recovery snapshot; six non-held-out labels (healthy plus five faults)
+  were appended to `/tmp/netscope-benchmark/runs.jsonl`. Run artifacts remain in
+  `/tmp`, outside Git.
+- The run is development data only. No held-out evaluation or model accuracy claim
+  has been produced. Collect an independent held-out set after diagnosis tuning is
+  frozen before reporting evaluation metrics.
