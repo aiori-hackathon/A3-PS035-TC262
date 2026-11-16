@@ -103,7 +103,7 @@ def _collect_to(directory):
 def run_benchmark(scenario_ids, output_dir, collector=_collect_to, apply_fault=None, restore_fault=None,
                   diagnosis_builder=None, collection_complete=None, lab_verifier=None, recovery_checker=None,
                   recovery_timeout=240, recovery_poll_interval=15, sleep_fn=time.sleep,
-                  clock_fn=time.monotonic):
+                  clock_fn=time.monotonic, held_out=False):
     """Collect baseline, fault and recovery records; always attempt rollback."""
     diagnosis_builder = diagnosis_builder or build_diagnosis
     collection_complete = collection_complete or telemetry_collection_complete
@@ -115,7 +115,7 @@ def run_benchmark(scenario_ids, output_dir, collector=_collect_to, apply_fault=N
         raise RuntimeError("Refusing benchmark: baseline collection is incomplete or already has ranked fault candidates.")
     run_records = []
     baseline_id = f"baseline-{uuid4().hex[:12]}"
-    run_records.append({"held_out": False, "run_id": baseline_id, "scenario_id": "healthy_baseline",
+    run_records.append({"held_out": held_out, "run_id": baseline_id, "scenario_id": "healthy_baseline",
                         "expected_candidate_link": None, "diagnosis_status": "insufficient_evidence",
                         "diagnosis": diagnosis_builder(baseline)})
     print(f"Baseline saved: {baseline_path}")
@@ -152,7 +152,7 @@ def run_benchmark(scenario_ids, output_dir, collector=_collect_to, apply_fault=N
             sleep_fn(min(recovery_poll_interval, remaining))
         diagnosis = diagnosis_builder(fault_snapshot)
         run_id = f"{scenario_id}-{uuid4().hex[:12]}"
-        run_records.append({"held_out": False, "run_id": run_id, "scenario_id": scenario_id,
+        run_records.append({"held_out": held_out, "run_id": run_id, "scenario_id": scenario_id,
                             "expected_candidate_link": catalog[scenario_id]["expected_link"],
                             "diagnosis_status": diagnosis["diagnosis_status"], "diagnosis": diagnosis})
         print(f"{scenario_id}: fault snapshot {fault_path}; recovery verified {recovered_path}")
@@ -165,7 +165,8 @@ def run_benchmark(scenario_ids, output_dir, collector=_collect_to, apply_fault=N
                 stream.write(json.dumps(record, separators=(",", ":")) + "\n")
     except Exception:
         raise
-    print(f"Appended {len(run_records)} non-held-out labels to {manifest}; reserve independent runs for held-out evaluation.")
+    label_kind = "held-out" if held_out else "non-held-out"
+    print(f"Appended {len(run_records)} {label_kind} labels to {manifest}.")
     return manifest
 
 
@@ -174,12 +175,15 @@ def main(argv=None):
     parser.add_argument("--output-dir", type=Path, required=True, help="Private path outside the repository; use /tmp/netscope-benchmark")
     parser.add_argument("--scenario", choices=[item["id"] for item in scenarios()], action="append", help="Repeat for selected scenarios; default runs all five in order")
     parser.add_argument("--confirm-lab", help="Required exact confirmation: ps035")
+    parser.add_argument("--held-out", action="store_true",
+                        help="Mark this independent batch held out after diagnosis tuning is frozen")
     parser.add_argument("--dry-run", action="store_true", help="Print the plan without Docker access, collection, or file writes")
     args = parser.parse_args(argv)
     selected = args.scenario or [item["id"] for item in scenarios()]
     if args.dry_run:
         print("Dry run only; no lab or files changed.")
-        print("Planned: healthy baseline, then for each scenario apply → collect → restore → compare recovery state.")
+        label_kind = "held-out" if args.held_out else "non-held-out"
+        print(f"Planned: collect and label a {label_kind} healthy baseline and fault batch, restoring and verifying after each scenario.")
         print("Scenarios:", ", ".join(selected))
         return 0
     if args.confirm_lab != "ps035":
@@ -188,7 +192,7 @@ def main(argv=None):
         output_dir = _private_directory(args.output_dir)
         old_umask = os.umask(0o077)
         try:
-            run_benchmark(selected, output_dir)
+            run_benchmark(selected, output_dir, held_out=args.held_out)
         finally:
             os.umask(old_umask)
         return 0

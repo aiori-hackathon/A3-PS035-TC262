@@ -816,3 +816,6 @@ Phase F was committed and pushed as `bf27cfb` before this work.
 - The run is development data only. No held-out evaluation or model accuracy claim
   has been produced. Collect an independent held-out set after diagnosis tuning is
   frozen before reporting evaluation metrics.
+- Added an explicit `--held-out` mode to the guarded runner so a post-freeze,
+  independent six-record batch can be evaluated without mislabeling development
+  data. Regression coverage verifies both baseline and fault rows carry the flag.

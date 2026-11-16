@@ -100,7 +100,16 @@ does not run the collector or fault controller.
    access path and follow the printed stop/recovery guidance if any rollback fails.
    It appends labeled non-held-out records to `runs.jsonl`; repeat separate runs to
    gather the default minimum of three examples per class before optional-model
-   training. Review and reserve independent records as held-out only after tuning.
+   training. Once diagnosis tuning is frozen, collect a separate independent batch
+   with `--held-out`; this marks its healthy baseline and every scenario record as
+   held out in the manifest:
+
+   ```sh
+   python tools/run_lab_benchmark.py --output-dir /tmp/netscope-benchmark \
+     --confirm-lab ps035 --held-out
+   ```
+
+   The evaluator uses only those held-out rows. Do not tune against them afterward.
 7. After every scenario and healthy baseline has an independently collected held-out
    record, calculate the metrics:
 

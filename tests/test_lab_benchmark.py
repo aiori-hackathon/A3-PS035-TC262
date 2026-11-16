@@ -117,6 +117,24 @@ class LabBenchmarkTests(unittest.TestCase):
             self.assertEqual(len(manifest.read_text().splitlines()), 2)
         self.assertEqual(events, ["collect", "apply", "collect", "restore", "collect", "wait:15", "collect"])
 
+    def test_held_out_batch_marks_baseline_and_fault_records(self):
+        samples = iter([snapshot(), snapshot(), snapshot()])
+
+        def collect(_directory):
+            return next(samples), Path("/tmp/run.json")
+
+        with TemporaryDirectory() as directory:
+            manifest = run_benchmark(
+                ["bgp_r1_r2_shutdown"], Path(directory), collector=collect,
+                apply_fault=lambda _scenario: 0, restore_fault=lambda _scenario: 0,
+                diagnosis_builder=lambda _snapshot: {"candidate_root_causes": [], "diagnosis_status": "insufficient_evidence"},
+                collection_complete=lambda _snapshot: True, lab_verifier=lambda: None,
+                recovery_checker=lambda *_args: True, held_out=True,
+            )
+            records = [json.loads(line) for line in manifest.read_text().splitlines()]
+        self.assertEqual([record["scenario_id"] for record in records], ["healthy_baseline", "bgp_r1_r2_shutdown"])
+        self.assertTrue(all(record["held_out"] for record in records))
+
     def test_recovery_timeout_stops_before_appending_fault_label(self):
         events = []
         now = [0]
