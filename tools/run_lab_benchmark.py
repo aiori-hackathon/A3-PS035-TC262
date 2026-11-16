@@ -15,6 +15,8 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 from app.collector.fault_lab import main as fault_lab_main, scenarios, verify_lab
 from app.collector.telemetry import collect_snapshot, save_snapshot
+from app.collector.validation import telemetry_collection_complete
+from app.diagnosis.engine import build_diagnosis
 from app.topology import load_topology
 
 def operational_signature(snapshot):
@@ -93,10 +95,8 @@ def run_benchmark(scenario_ids, output_dir, collector=_collect_to, apply_fault=N
                   recovery_timeout=240, recovery_poll_interval=15, sleep_fn=time.sleep,
                   clock_fn=time.monotonic):
     """Collect baseline, fault and recovery records; always attempt rollback."""
-    if diagnosis_builder is None or collection_complete is None:
-        from app.api.main import build_diagnosis, telemetry_collection_complete
-        diagnosis_builder = diagnosis_builder or build_diagnosis
-        collection_complete = collection_complete or telemetry_collection_complete
+    diagnosis_builder = diagnosis_builder or build_diagnosis
+    collection_complete = collection_complete or telemetry_collection_complete
     apply_fault = apply_fault or (lambda scenario: fault_lab_main(["apply", scenario, "--confirm-lab", "ps035"]))
     restore_fault = restore_fault or (lambda scenario: fault_lab_main(["restore", scenario, "--confirm-lab", "ps035"]))
     (lab_verifier or verify_lab)()

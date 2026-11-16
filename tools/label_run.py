@@ -8,6 +8,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from app.collector.fault_lab import scenarios
+from app.diagnosis.engine import build_diagnosis
 
 
 def main():
@@ -23,8 +24,6 @@ def main():
     labels['healthy_baseline'] = None
     if args.scenario not in labels:
         parser.error('unknown scenario ID')
-    from app.api.main import build_diagnosis
-
     snapshot = json.loads(args.snapshot.read_text(encoding='utf-8'))
     diagnosis = build_diagnosis(snapshot)
     record = {

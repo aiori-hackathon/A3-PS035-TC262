@@ -801,3 +801,8 @@ Phase F was committed and pushed as `bf27cfb` before this work.
 - Added regression coverage for delayed recovery and timeout behavior. This is a
   local change only; it has not been deployed or pushed, and the live VM benchmark
   has not yet been run.
+- VM preflight exposed an unnecessary import of the hosted Flask/Firebase API from
+  the local benchmark CLI. Diagnosis and collection-completeness logic now live in
+  framework-independent modules shared by the API and CLI, so lab tools can run
+  without installing hosted-service packages. This follow-up is local and awaits
+  review before commit/push.

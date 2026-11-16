@@ -83,9 +83,11 @@ does not run the collector or fault controller.
    scenarios and require interface/BGP recovery to match the healthy baseline before
    it proceeds. After restoration it polls fresh snapshots every 15 seconds, for up
    to four minutes, to allow BGP sessions to reconverge. If recovery still does not
-   match, it stops before applying another fault. Run only on the isolated VM, with
-   a protected output directory and explicit confirmation. Dry run is safe and does
-   not access Docker:
+   match, it stops before applying another fault. The CLI uses the local diagnosis
+   pipeline and does not require Flask or Firebase Admin; the hosted API dependencies
+   are not needed for this lab tool. Run only on the isolated VM, with a protected
+   output directory and explicit confirmation. Dry run is safe and does not access
+   Docker:
 
    ```sh
    python tools/run_lab_benchmark.py --output-dir /tmp/netscope-benchmark --dry-run
