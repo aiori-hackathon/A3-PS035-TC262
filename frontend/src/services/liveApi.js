@@ -18,8 +18,13 @@ export function validateLiveSnapshot(data) {
       || !Array.isArray(data.diagnosis?.findings) || !Array.isArray(data.diagnosis?.candidate_root_causes)
       || !Array.isArray(data.evidence) || !Array.isArray(data.incidents)) throw new Error('The backend returned an unsupported snapshot.');
   const strings = (item, fields) => item && typeof item === 'object' && fields.every(field => typeof item[field] === 'string');
+  const optionalModel = data.diagnosis.optional_model;
   const history = data.history ?? [];
   if (!Number.isInteger(data.incidents_total) || (data.diagnosis.impact_analysis?.limitations != null && typeof data.diagnosis.impact_analysis.limitations !== 'string') || data.routers.length > 100 || data.topology.links.length > 1000 || data.evidence.length > 10000
+    || (optionalModel != null && (!strings(optionalModel, ['status','reason']) || !['not_configured','unavailable','abstained','available'].includes(optionalModel.status)
+      || !Array.isArray(optionalModel.predictions) || !optionalModel.predictions.every(item => strings(item, ['candidate_link']) && typeof item.relative_score === 'number' && Number.isFinite(item.relative_score) && item.relative_score >= 0 && item.relative_score <= 1)
+      || !Array.isArray(optionalModel.explanation) || !optionalModel.explanation.every(item => typeof item === 'string')
+      || (optionalModel.status === 'available' && (!strings(optionalModel, ['algorithm','score_semantics']) || !Number.isInteger(optionalModel.training_runs) || optionalModel.training_runs < 1))))
     || !data.routers.every(item => strings(item, ['id', 'status']) && typeof item.collection_ok === 'boolean' && Number.isInteger(item.findings_count))
     || !data.topology.links.every(item => strings(item, ['id','a','b','status','physical_status']))
     || !data.diagnosis.findings.every(item => strings(item, ['router','type','severity','message']))

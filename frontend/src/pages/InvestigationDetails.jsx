@@ -338,6 +338,8 @@ function InvestigationReport({currentUser, investigationId}) {
                   )}
                 </section>
 
+                {snapshot.diagnosis?.optional_model && <ReportCard><span className="report-small-label">EXPERIMENTAL COMPARISON</span><h2>Optional model comparison</h2><p>{snapshot.diagnosis.optional_model.reason}</p>{snapshot.diagnosis.optional_model.status === "available" && <><p>Method: {readable(snapshot.diagnosis.optional_model.algorithm)} · trained on {snapshot.diagnosis.optional_model.training_runs} runs. Relative scores are not calibrated probabilities.</p>{snapshot.diagnosis.optional_model.predictions?.map(item => <p key={item.candidate_link}><strong>{readable(item.candidate_link)}</strong> · relative score {item.relative_score}</p>)}<small>Signals considered: {(snapshot.diagnosis.optional_model.explanation || []).map(readable).join(", ") || "none"}</small></>}</ReportCard>}
+
                 <section className="report-section">
                   <ReportHeading
                     icon={AlertTriangle}

@@ -13,6 +13,11 @@ test('selected export preserves supported evidence and hypotheses while dropping
  const result=buildReportExport({...record,snapshotJson:JSON.stringify(data),apiKey:'SECRET'},{diagnosis:true,evidence:true,incidents:true,impact:true,notes:true});
  assert.equal(result.diagnosis.findings.length,5);assert.equal(result.diagnosis.suspected_causes.length,2);assert.equal(result.evidence.length,11);assert.equal(result.incidents.length,2);assert.equal(result.notes,'Operator review');assert.ok(!JSON.stringify(result).includes('SECRET'));assert.deepEqual(result.diagnosis.findings[0].evidence_ids,['EV-201']);
 });
+test('selected diagnosis export includes the optional model comparison without unknown fields',()=>{
+ const data=structuredClone(snapshot);data.diagnosis.optional_model={status:'available',reason:'Comparison',algorithm:'bernoulli_naive_bayes',training_runs:12,score_semantics:'relative_model_score_not_calibrated_probability',predictions:[{candidate_link:'R1-R2',relative_score:.75,credential:'SECRET'}],explanation:['finding:bgp_down'],credential:'SECRET'};
+ const result=buildReportExport({...record,snapshotJson:JSON.stringify(data)},{diagnosis:true});
+ assert.deepEqual(result.diagnosis.optional_model.predictions,[{candidate_link:'R1-R2',relative_score:.75}]);assert.deepEqual(result.diagnosis.optional_model.explanation,['finding:bgp_down']);assert.ok(!JSON.stringify(result).includes('SECRET'));
+});
 test('legacy and malformed snapshots export metadata with missing data explicitly marked',()=>{
  for(const data of [{},{snapshotJson:'{bad'},{snapshotJson:'null'}]) {const result=buildReportExport(data,{diagnosis:true,evidence:true});assert.equal(result.metadata.snapshot_available,false);assert.equal(result.diagnosis,null);assert.equal(result.evidence,null);assert.equal(result.metadata.source,'unknown');}
 });

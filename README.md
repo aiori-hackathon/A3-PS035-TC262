@@ -296,8 +296,11 @@ When candidate root causes are detected, the impact analyzer:
 | **Automated Unit Testing** | Verified | `tests/test_diagnosis.py` | Validates BGP analyzer and root cause correlation logic. |
 | **Active ICMP Ping Probing** | Verified | `app/collector/measurements.py` | Bounded probes on configured adjacencies; reports collection-time reachability, loss, and RTT when available. |
 | **Router Log Parsing** | Implemented | `app/diagnosis/measurements.py` | Best-effort parsing of available container logs; not a streaming syslog receiver. |
-| **Isolated Fault Scenario CLI** | Implemented | `app/collector/fault_lab.py` | Fixed-command apply/restore for five seeded scenarios with explicit lab confirmation. |
-| **AI/ML Secondary Diagnostic Model**| Roadmap | *Optional Extension* | Supervised classification model comparing predictions against baseline. |
+| **Five Seeded Fault Scenarios** | Implemented | `lab/fault_scenarios.json`, `app/collector/fault_lab.py` | Fixed-command apply/restore with explicit isolated-lab confirmation. |
+| **Rule-Based Diagnostic Baseline** | Implemented | `app/diagnosis/root_cause.py`, `docs/PS035_ALIGNMENT.md` | Transparent evidence-ranked hypotheses, with explicit insufficient-evidence abstention. |
+| **Guarded Benchmark Runner** | Implemented; VM run pending | `tools/run_lab_benchmark.py` | Baseline → fault → restore → interface/BGP recovery check. No full five-scenario run claimed yet. |
+| **Held-Out Evaluation** | Evaluator implemented; dataset pending | `tools/evaluate_runs.py` | Top-1/Top-3 and unsupported-conclusion metrics require independent labeled held-out runs. |
+| **Optional AI/ML Comparison** | Implemented; trained model pending | `app/diagnosis/optional_model.py`, `tools/train_optional_model.py` | Opt-in Naive Bayes comparison; rule baseline remains primary and no quality claim is made. |
 
 ---
 
@@ -735,6 +738,10 @@ The backend runs on `http://127.0.0.1:5000` (or `http://localhost:5173/api` via 
 
 ## 12. Controlled Fault Injection & Recovery Runbook
 
+See [the operator runbook](docs/FAULT_LAB_RUNBOOK.md), [PS-035 alignment and
+evaluation workflow](docs/PS035_ALIGNMENT.md), and [mentor demo and pseudocode](docs/PROTOTYPE_DEMO.md)
+for guarded scenario sequencing, output handling, model training and held-out evaluation.
+
 This guide demonstrates how to simulate a network link degradation/cut, observe NETSCOPE's diagnosis, and verify recovery.
 
 > [!CAUTION]
@@ -879,14 +886,14 @@ OK
 
 ### Known Limitations
 1. **Topology Impact Estimation vs. Live RIB:** `impact_analysis.py` computes connected components from static graph definitions and active incidents. It identifies whether topological bypass paths exist, but does not independently verify live route convergence or withdrawn prefix announcements.
-2. **Synchronous Polling:** Telemetry collection currently runs synchronously via Docker CLI execution upon a `/api/refresh` request rather than an asynchronous streaming telemetry daemon.
+2. **Collection and streaming:** The Ubuntu VM service uploads a bounded snapshot on its configured interval, while each collector cycle still queries routers sequentially through Docker CLI. Live Monitoring reads stored snapshots; it does not trigger collection. The optional privileged refresh endpoint remains disabled by default.
 3. **Environment:** Containerlab requires a Linux environment (or a Linux VM on macOS/Windows) due to kernel network namespace constraints.
 
 ### Proposed Roadmap Extensions
 - [ ] **Asynchronous Syslog Receiver:** An integrated syslog daemon (RFC 5424) listening for immediate link down/up traps.
 - [ ] **Active ICMP Probe Matrix:** Periodic ping meshes across loopbacks (`192.168.1.1` to `192.168.5.1`) to detect asymmetric latency and packet loss.
-- [ ] **Automated Benchmark Scenario Runner:** A test harness executing all 5 seeded hackathon fault scenarios, evaluating Top-1 and Top-3 accuracy against ground truth.
-- [ ] **Machine Learning Diagnostic Model:** An optional supervised classification model evaluated in tandem with the rule-based baseline.
+- [x] **Automated Benchmark Scenario Runner:** A guarded runner now sequences baseline, each fixed seeded fault, restoration and interface/BGP recovery comparison, then records non-held-out labels. A full run still requires the isolated Ubuntu lab and operator confirmation; held-out accuracy is not claimed without independently collected labels.
+- [x] **Optional Machine Learning Diagnostic Model:** An opt-in, explainable Naive Bayes comparison can be trained from operator-labeled runs and evaluated separately on held-out records. No trained model or quality claim is shipped until real labeled runs exist.
 
 ---
 

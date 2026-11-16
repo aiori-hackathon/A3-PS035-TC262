@@ -718,8 +718,7 @@ Phase F was committed and pushed as `bf27cfb` before this work.
   and a one-direction loss spike. Preview server stopped after inspection.
 - Flask/Firestore endpoint integration remains unverified because Flask and
   `firebase_admin` are missing from the local Python environment. No cloud writes or
-  deployment were performed. Phase P was committed locally as `6b9f0d5`; it has not
-  been pushed to `origin/main`.
+  deployment were performed. Phase P was pushed to `origin/main` as `6b9f0d5`.
 
 ## Phase Q — Focused trend analysis (16 November 2026)
 
@@ -740,5 +739,55 @@ Phase F was committed and pushed as `bf27cfb` before this work.
 - Telemetry history helper: PASS, 3 tests; incident tracker: PASS, 3 tests;
   diagnosis tests: PASS, 2 tests.
 - `python3 -m compileall -q app tests`: PASS; `git diff --check`: PASS.
-- Phase Q is implemented locally and is not committed or pushed. Phase P remains
-  one local commit ahead of `origin/main`.
+- Phase P and Phase Q were committed separately as `6b9f0d5` and `8d5e2bd`, then
+  pushed to `origin/main` with user approval. The project tree was clean after push.
+
+## Phase R — Problem-statement completion: optional model and safe benchmark (16 November 2026)
+
+### Implemented locally
+- Added an opt-in standard-library Bernoulli Naive Bayes comparison trained only
+  from labeled non-held-out run records. It requires repeated examples from at least
+  two fault-link classes and a no-supported-fault class; held-out records are ignored.
+- Model features describe symptoms, coarse probe/coverage state, router and log
+  observations. They exclude expected-link labels and rule-ranked candidate links.
+  Scores are explicitly relative (not calibrated probabilities); unknown evidence and
+  a top-ranked no-fault class produce an abstention. The rule baseline is never
+  replaced and remains available when the optional model is absent or invalid.
+- Live Monitoring and selected JSON report exports can show the experimental
+  comparison, method, training-run count, relative scores and explanatory features.
+- Extended held-out evaluation to report optional-model Top-1/Top-3 and abstention
+  metrics separately from the rule baseline.
+- Added `tools/run_lab_benchmark.py`: fixed seeded scenario sequence, private
+  out-of-repository output, explicit lab confirmation, baseline requirements,
+  guaranteed restore attempt, and interface/BGP recovery comparison. Delay/loss
+  recovery additionally verifies the lab `netem` queue discipline was removed.
+- Added a mentor demo and diagnosis pseudocode in `docs/PROTOTYPE_DEMO.md`.
+- Fixed the snapshot collector's external output-directory display path; previously
+  it could save a `/tmp` snapshot and then fail while formatting the printed path.
+
+### Verification and remaining work
+- `npm run lint`: PASS, exit 0. `npm test`: PASS, 67 tests, 0 failures; Node's
+  existing experimental module-mocking notice remains. `npm run build`: PASS,
+  exit 0; 2565 modules transformed, no oversized-chunk warning.
+- Python unit suite for optional model, benchmark sequencing/rollback/recovery,
+  collector CLI, diagnosis, incident tracking and telemetry history: PASS, 20 tests.
+  Python compileall: PASS. `git diff --check`: PASS.
+- Benchmark dry-run, all five-scenario listing, and the label/train/evaluate CLI help
+  checks: PASS without Docker access or lab changes.
+- Flask/Firestore API integration checks remain BLOCKED in local Python 3.14:
+  Flask and `firebase_admin` are missing. Specifically, `tests.test_live_api` fails
+  import on missing `firebase_admin`, and `tests.test_telemetry_ingest` fails import
+  on missing Flask. No dependencies were installed globally.
+- A real five-scenario benchmark and independent held-out evaluation still require
+  repeated, operator-controlled runs on the Ubuntu VM. No faults were applied and no
+  VM/container or cloud state was changed during this phase.
+- No trained model or accuracy claim is included. At least three training examples
+  per class and a distinct, independently collected held-out set remain to be
+  collected and reviewed.
+- UI integration is covered by the frontend contract test, export regression test,
+  lint and production build. A full browser sign-in/deployed API check remains an
+  operator integration step.
+- PS-035 alignment now separates software-complete requirements from operational
+  proof still needed. The held-out dataset/run and GitHub ownership transfer remain
+  external gates. `origin` currently points to `Loki-7865/A3-PS035-TC262`; no
+  repository ownership or collaborator settings were changed.

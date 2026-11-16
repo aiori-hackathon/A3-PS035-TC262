@@ -1,6 +1,7 @@
 
 from pathlib import Path
 import json
+import os
 
 from flask import Flask, jsonify
 from app.api.security import install_security
@@ -13,6 +14,7 @@ from app.diagnosis.impact_analysis import analyze_impact
 from app.diagnosis.measurements import analyze_interfaces, analyze_probes
 from app.topology import load_topology
 from app.diagnosis.incident_tracker import update_incident_history
+from app.diagnosis.optional_model import compare_diagnosis
 
 app = Flask(__name__)
 install_security(app)
@@ -73,7 +75,7 @@ def build_diagnosis(snapshot):
     correlated = correlate_findings(findings, topology, syslog_events)
     impact = analyze_impact(correlated, topology)
 
-    return {
+    result = {
         "snapshot_timestamp": snapshot.get("collected_at"),
         "routers_analyzed": len(routers),
         "finding_count": len(findings),
@@ -88,6 +90,8 @@ def build_diagnosis(snapshot):
         "measurements": snapshot.get("measurements", []),
         "impact_analysis": impact,
     }
+    result["optional_model"] = compare_diagnosis(result, os.environ.get("NETSCOPE_DIAGNOSIS_MODEL"))
+    return result
 
 
 @app.get("/api/health")

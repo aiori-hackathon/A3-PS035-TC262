@@ -10,6 +10,9 @@ test('API URLs require TLS except loopback and reject credentials', () => {
 });
 test('snapshot validation rejects malformed nested render values',()=> {
   assert.equal(validateLiveSnapshot(snapshot),snapshot);
+  const optionalModel={status:'available',reason:'Experimental',algorithm:'bernoulli_naive_bayes',training_runs:15,score_semantics:'relative_model_score_not_calibrated_probability',predictions:[{candidate_link:'R1-R2',relative_score:.8}],explanation:['finding:bgp_session_not_established']};
+  assert.equal(validateLiveSnapshot({...snapshot,diagnosis:{...snapshot.diagnosis,optional_model:optionalModel}}).diagnosis.optional_model,optionalModel);
+  assert.throws(()=>validateLiveSnapshot({...snapshot,diagnosis:{...snapshot.diagnosis,optional_model:{...optionalModel,predictions:[{candidate_link:'R1-R2',relative_score:2}]}}}));
   assert.throws(()=>validateLiveSnapshot({...snapshot,routers:[{id:{}}]}));
   assert.throws(()=>validateLiveSnapshot({...snapshot,diagnosis:{...snapshot.diagnosis,impact_analysis:{limitations:{}}}}));
   const sample={observed_at:'2026-11-16T10:00:00Z',links:[{link:'R1-R2',packet_loss_percent:0,rtt_avg_ms:2.4,probes_available:2}]};

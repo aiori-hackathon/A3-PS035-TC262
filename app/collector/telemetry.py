@@ -69,7 +69,11 @@ def main(argv=None):
     snapshot = collect_snapshot()
     output_file = save_snapshot(snapshot, args.output_dir)
 
-    print(f"Telemetry saved to: {output_file.relative_to(PROJECT_ROOT)}")
+    try:
+        display_path = output_file.relative_to(PROJECT_ROOT)
+    except ValueError:
+        display_path = output_file
+    print(f"Telemetry saved to: {display_path}")
 
     for router in snapshot["routers"]:
         status = (

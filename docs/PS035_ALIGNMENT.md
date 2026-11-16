@@ -52,6 +52,28 @@ record scenario, run ID, timestamp, fault application/restore verification, and
 reviewer separately so repeated or contaminated runs can be excluded. Do not publish
 accuracy claims until a held-out set has actually been collected and checked.
 
+## Optional model comparison
+
+The rule baseline remains the primary diagnosis. A standard-library Bernoulli Naive
+Bayes comparison can be trained from non-held-out records created with
+`tools/label_run.py`; the trainer ignores records marked held out and requires at
+least three usable runs for each of two fault-link classes plus a no-supported-fault
+class by default. Example:
+
+```sh
+python tools/train_optional_model.py /secure/training-runs.jsonl /secure/netscope-model.json
+NETSCOPE_DIAGNOSIS_MODEL=/secure/netscope-model.json python -m app.api.main
+python tools/evaluate_runs.py /secure/held-out-runs.jsonl --model /secure/netscope-model.json
+```
+
+Keep model files and labeled runs outside public/static directories and do not commit
+private telemetry. The model uses coarse finding, router, log, coverage and probe
+features; it never consumes the expected link label or a pre-ranked candidate. It
+reports comparative relative scores, not calibrated probabilities, and abstains if
+there is no usable known evidence or the no-fault class ranks first. The API falls
+back to the rule baseline if no model is configured or a model cannot be loaded.
+Model quality remains unverified until independent held-out lab runs are collected.
+
 ## Interpretation boundaries
 
 - A successful ping verifies ICMP reachability for that probe and time only; it does
@@ -65,3 +87,20 @@ accuracy claims until a held-out set has actually been collected and checked.
 - Live collection and fault application require a suitable isolated lab runtime and
   explicit operator action. The hosted read-only API never invokes Docker or this
   fault controller.
+
+## Completion gates
+
+The requested software components are implemented: the five-node instrumented lab,
+five guarded seeded faults, topology/log/probe collection, rule-based ranked evidence,
+unsupported-conclusion behavior, optional model comparison, benchmark/evaluation
+tools, and mentor demo material. Remaining proof is operational rather than a claim
+about code availability: run and restore each seeded fault on the Ubuntu VM, collect
+repeated non-held-out training examples, collect a separate independent held-out set,
+and review its measured baseline/model results before publishing accuracy.
+
+The PDF's GitHub collaboration deliverable is also an owner-side action. This checkout
+currently points at `Loki-7865/A3-PS035-TC262`; the statement asks for a private
+repository, `aiori-hackathon` collaborator access, and ownership transfer to that
+organization after acceptance. No ownership or access change has been made by these
+code changes. The proposal-only asynchronous syslog receiver and loopback probe mesh
+in the README are future extensions, not additional PS-035 key requirements.

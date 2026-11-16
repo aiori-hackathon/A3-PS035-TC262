@@ -30,6 +30,7 @@ an isolated environment. Export the following in the backend service environment
 | `NETSCOPE_LIVE_UIDS` | Comma-separated Firebase UIDs authorized to view this network; empty denies everyone |
 | `NETSCOPE_ALLOWED_ORIGINS` | Exact frontend origins, including scheme and port; no wildcard |
 | `NETSCOPE_TELEMETRY_DIR` | Absolute operator-owned directory with `telemetry_*.json` and optional `incident_history.json` |
+| `NETSCOPE_DIAGNOSIS_MODEL` | Optional path to a locally trained experimental model JSON; omit to use only the rule baseline |
 | `NETSCOPE_ENABLE_ADMIN_REFRESH` | Leave unset/false; privileged collection disabled by default |
 | `NETSCOPE_ADMIN_UIDS` | Additional admin allowlist if explicitly enabling local administration |
 
@@ -80,6 +81,13 @@ Responses distinguish observation time from API response time. Older than three
 minutes is stale; unknown/future timestamps do not imply fresh data. Router
 collection success and BGP hypotheses are separate from physical link state,
 which remains unmeasured. Reachable API does not mean healthy/running lab.
+
+The optional diagnosis model uses the standard library and has no active effect unless
+`NETSCOPE_DIAGNOSIS_MODEL` points to a valid model file. Train it from labeled
+non-held-out lab runs with `tools/train_optional_model.py`; its predictions are shown
+as a comparison only, relative scores are not probabilities, and held-out runs must
+remain separate for `tools/evaluate_runs.py --model`. The rule-based diagnosis stays
+available if the model is missing or invalid.
 
 Manual refresh reads storage only. Optional polling runs every 30 seconds while
 visible, with no overlapping requests, a ten-second client timeout, and cleanup

@@ -71,6 +71,10 @@
 .live-trend-summary article { display: flex; min-width: 0; flex-direction: column; gap: 3px; padding: 10px 12px; border: 1px solid #e8e4da; border-radius: 9px; background: #faf8f2; }
 .live-trend-summary small { color: #74756d; font-size: 8px; font-weight: 800; letter-spacing: .7px; }
 .live-trend-summary strong { overflow: hidden; color: #343832; font: 650 16px "Space Grotesk",sans-serif; text-overflow: ellipsis; white-space: nowrap; }
+.live-optional-model { margin-top: 15px; padding: 14px; border: 1px solid #e6d9c9; border-radius: 10px; background: #faf6ee; }
+.live-optional-model h3 { display: flex; align-items: center; gap: 9px; margin: 0; color: #41443d; font: 650 13px "Space Grotesk",sans-serif; }
+.live-optional-model h3 span { padding: 3px 6px; border-radius: 5px; background: #f3e6d3; color: #855c31; font: 800 7px "DM Sans",sans-serif; letter-spacing: .7px; }
+.live-optional-model p { margin: 7px 0; color: #62645e; font-size: 10px; }.live-optional-model small { color: #77786f; font-size: 9px; }
 .live-trends-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 13px; margin-top: 17px; }
 .live-chart { min-width: 0; padding: 15px 13px 8px; border: 1px solid #e8e4da; border-radius: 12px; background: #fffefa; }
 .live-chart h3 { display: flex; align-items: baseline; gap: 7px; margin: 0 0 8px; color: #373a34; font: 650 13px "Space Grotesk",sans-serif; }.live-chart h3 span { color: #77786f; font: 500 9px "DM Sans",sans-serif; }

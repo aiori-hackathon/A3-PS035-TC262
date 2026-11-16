@@ -79,11 +79,34 @@ does not run the collector or fault controller.
 
    Use unique run IDs. The scenario catalog supplies the expected link label. Use
    `--scenario healthy_baseline` for healthy snapshots, whose expected link is null.
-6. After every scenario and healthy baseline has a held-out record, calculate the
-   metrics:
+6. For repeatable non-held-out collection, the guarded runner can sequence all five
+   scenarios and require interface/BGP recovery to match the healthy baseline before
+   it proceeds. Run only on the isolated VM, with a protected output directory and
+   explicit confirmation. Dry run is safe and does not access Docker:
+
+   ```sh
+   python tools/run_lab_benchmark.py --output-dir /tmp/netscope-benchmark --dry-run
+   python tools/run_lab_benchmark.py --output-dir /tmp/netscope-benchmark --confirm-lab ps035
+   ```
+
+   A full run actively disrupts one lab link/peer at a time. Keep an independent VM
+   access path and follow the printed stop/recovery guidance if any rollback fails.
+   It appends labeled non-held-out records to `runs.jsonl`; repeat separate runs to
+   gather the default minimum of three examples per class before optional-model
+   training. Review and reserve independent records as held-out only after tuning.
+7. After every scenario and healthy baseline has an independently collected held-out
+   record, calculate the metrics:
 
    ```sh
    python tools/evaluate_runs.py /tmp/netscope-heldout.jsonl
+   ```
+
+   For a separately trained optional model comparison, first train on non-held-out
+   records outside the repository and then pass the model explicitly:
+
+   ```sh
+   python tools/train_optional_model.py /tmp/netscope-training.jsonl /tmp/netscope-model.json
+   python tools/evaluate_runs.py /tmp/netscope-heldout.jsonl --model /tmp/netscope-model.json
    ```
 
    The evaluator reports only the labels supplied. Keep the scenario/run manifest,
