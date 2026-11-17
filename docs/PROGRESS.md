@@ -847,3 +847,16 @@ Phase F was committed and pushed as `bf27cfb` before this work.
 - Follow-up readability pass: increased metric, label, status, and router text sizes;
   strengthened secondary-text contrast; enlarged cards and spacing; switched link
   cards to a single column at intermediate widths to keep directional details legible.
+
+## Fault Investigation experience redesign — 17 November 2026
+- Restructured the page around a guided evidence workflow with a clear back-to-dashboard
+  action, source cards, a prominent diagnosis action, and distinct result, impact,
+  operator checklist, and save sections.
+- Added a responsive signal-trace hero visual with a drawing waveform, moving scan,
+  and evidence indicators. The animation represents diagnostic signal analysis and
+  does not reuse the router/topology animation.
+- Preserved demo/live investigation behavior, scenario selection, captured evidence,
+  and read-only live telemetry semantics. Added reduced-motion handling.
+- Frontend lint and production build pass; `git diff --check` passes. Browser-based
+  visual verification was unavailable, so the design has not yet been reviewed in a
+  live browser at desktop and mobile sizes.
