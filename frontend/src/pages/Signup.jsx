@@ -114,7 +114,7 @@ export default function Signup() {
             Continue with Google
           </button>
 
-          <p className="auth-progress" role="status">{loading ? "Creating your account…" : ""}</p>
+          <p className="auth-progress" role="status">{loading ? "Setting up your secure NETSCOPE profile…" : ""}</p>
 
           <div className="auth-divider">
             <span>or continue with email</span>
@@ -186,7 +186,7 @@ export default function Signup() {
               className="auth-submit-button"
               disabled={loading}
             >
-              {loading ? "Creating account..." : "Create account →"}
+              {loading ? "Creating your secure profile…" : "Create account →"}
             </button>
           </form>
 

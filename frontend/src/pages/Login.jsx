@@ -81,7 +81,7 @@ export default function Login() {
             Continue with Google
           </button>
 
-          <p className="auth-progress" role="status">{loading ? "Signing you in…" : ""}</p>
+          <p className="auth-progress" role="status">{loading ? "Verifying your details and opening your workspace…" : ""}</p>
 
           <div className="auth-divider">
             <span>or continue with email</span>
@@ -123,7 +123,7 @@ export default function Login() {
               className="auth-submit-button"
               disabled={loading}
             >
-              {loading ? "Logging in..." : "Log in →"}
+              {loading ? "Entering your workspace…" : "Log in →"}
             </button>
           </form>
 

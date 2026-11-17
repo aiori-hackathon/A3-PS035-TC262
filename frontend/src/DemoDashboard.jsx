@@ -28,6 +28,7 @@ import { findingCategory, investigationContext } from "./services/demoScenarios"
 import "./App.css";
 import "./styles/DemoEnhancements.css";
 import SaveInvestigation from "./components/SaveInvestigation";
+import LoadingExperience from "./components/LoadingExperience";
 
 const SCENARIOS = [
   {
@@ -271,7 +272,7 @@ function App() {
             disabled={loading}
           >
             <RefreshCw size={17} className={loading ? "spin" : ""} />
-            {loading ? "Loading..." : "Reload scenario"}
+            {loading ? "Replaying lab snapshot…" : "Reload scenario"}
           </button>
           </div>
         </header>
@@ -542,7 +543,7 @@ function App() {
           </div>
         )}
 
-        {loading && <p className="demo-loading" role="status">Loading recorded scenario… Previous observations are hidden until this snapshot is ready.</p>}
+        {loading && <LoadingExperience compact title="Staging your lab scenario" message="Loading the recorded router readings and diagnosis for this walkthrough." />}
         {data && <>
         <div className="demo-provenance" role="status"><strong>{data.scenario.name || data.scenario.id}</strong><span>Recorded telemetry: {formatDate(data.telemetry.collected_at)}</span><span>Prerecorded diagnosis · Reload reads the same fixture; no live analysis runs.</span></div>
         <section className="stats-grid" style={{ marginTop: 25 }}>

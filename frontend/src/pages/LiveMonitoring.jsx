@@ -7,6 +7,7 @@ import { auth } from '../services/firebase';
 import { fetchLiveSnapshot, freshness, liveConfiguration } from '../services/liveApi';
 import { filterIncidents, incidentSpan } from '../utils/incidentHistory';
 import { filterTrendHistory, summarizeTrendHistory } from '../utils/telemetryTrends';
+import LoadingExperience from '../components/LoadingExperience';
 import '../styles/UserDashboard.css';
 import '../styles/LiveMonitoring.css';
 
@@ -72,7 +73,7 @@ function LiveWorkspace({ user }) {
   const packetsSent = measuredProbes.reduce((total, probe) => total + probe.packets_sent, 0);
   const packetsReceived = measuredProbes.reduce((total, probe) => total + (probe.packets_received || 0), 0);
   const aggregateLoss = packetsSent ? Math.round(((packetsSent - packetsReceived) / packetsSent) * 1000) / 10 : null;
-  const connectionLabel = !endpoint ? 'Not configured' : state.loading ? 'Connecting' : state.error ? state.denied ? 'Access denied' : 'Backend unavailable' : data ? 'Connected' : 'Waiting for telemetry';
+  const connectionLabel = !endpoint ? 'Not configured' : state.loading ? 'Checking access' : state.error ? state.denied ? 'Access denied' : 'Backend unavailable' : data ? 'Connected' : 'Waiting for telemetry';
   const topologyNodes = data?.routers.map((router, index, routers) => {
     const angle = (Math.PI * 2 * index / Math.max(routers.length, 1)) - Math.PI / 2;
     return { ...router, x: 50 + 37 * Math.cos(angle), y: 50 + 37 * Math.sin(angle) };
@@ -108,7 +109,7 @@ function LiveWorkspace({ user }) {
     <main className="live-main">
       <section className="live-hero">
         <div className="live-hero-copy"><p className="live-eyebrow"><span className="live-eyebrow-dot" /> NETWORK OPERATIONS / READ ONLY</p><h1>Live <span>Monitoring</span></h1><p>One clear view of your network’s health, reachability, and active signals.</p></div>
-        <div className="live-hero-actions"><div className="live-auth-badge"><ShieldCheck size={15} /> AUTHENTICATED SESSION</div>{data && <Link className="live-map-action" to="/dashboard/investigate?source=live">Investigate latest snapshot <ArrowUpRight size={14} /></Link>}<button className="live-refresh" onClick={() => setAttempt(value => value + 1)} disabled={!endpoint || state.loading}><RefreshCw size={15} className={state.loading ? 'live-spin' : ''} />{state.loading ? 'Checking' : 'Refresh snapshot'}</button></div>
+        <div className="live-hero-actions"><div className="live-auth-badge"><ShieldCheck size={15} /> AUTHENTICATED SESSION</div>{data && <Link className="live-map-action" to="/dashboard/investigate?source=live">Investigate latest snapshot <ArrowUpRight size={14} /></Link>}<button className="live-refresh" onClick={() => setAttempt(value => value + 1)} disabled={!endpoint || state.loading}><RefreshCw size={15} className={state.loading ? 'live-spin' : ''} />{state.loading ? 'Checking live status…' : 'Refresh snapshot'}</button></div>
       </section>
       <section className="live-overview" aria-label="Network summary">
         <article className="live-summary-card live-summary-connection"><span className="live-summary-icon"><Radio size={17} /></span><div><small>API CONNECTION</small><strong className={data ? 'text-good' : state.error ? 'text-bad' : ''}>{connectionLabel}</strong><span>{data ? freshness(data, now) : state.loading ? 'Secure check in progress' : 'Waiting for an authorized snapshot'}</span></div><span className={`live-summary-indicator ${data ? 'is-connected' : ''}`} /></article>
@@ -126,7 +127,7 @@ function LiveWorkspace({ user }) {
             <div className="map-center"><span className="map-center-icon"><Activity size={19} /></span><strong>NETSCOPE</strong><small>{data.topology.links.length} LINK PATHS</small></div>
             {topologyNodes.map(node => <button key={node.id} className={`map-router ${selectedStatus(node)} ${selection === node.id ? 'is-selected' : ''}`} style={{ left: `${node.x}%`, top: `${node.y}%` }} aria-pressed={selection === node.id} onClick={() => setSelection(selection === node.id ? null : node.id)}><span className="map-router-core"><Router size={18} /></span><strong>{node.id.toUpperCase()}</strong><small>{node.status.replaceAll('_',' ')}</small></button>)}
             <div className="map-caption"><Wifi size={13} /> {data.diagnosis.coverage ? `${data.diagnosis.coverage.routers_collected} of ${data.diagnosis.coverage.routers_total} routers collected · ${data.diagnosis.coverage.links_measured} of ${data.diagnosis.coverage.links_total} links probed` : 'Topology and collection status from latest stored snapshot'}</div>
-          </div> : <div className="live-empty-map"><span className="empty-map-icon"><Router size={24} /></span><strong>{state.loading ? 'Connecting to your network…' : 'Your network map will appear here'}</strong><p>{state.error || (!endpoint ? configurationError || 'Configure the Live API to load an authenticated snapshot.' : 'Waiting for the first authorized telemetry snapshot.')}</p></div>}
+          </div> : state.loading ? <div className="live-empty-map"><LoadingExperience compact className="live-map-loader" title="Checking the network" message="Verifying API access and looking for the latest stored snapshot." /></div> : <div className="live-empty-map"><span className="empty-map-icon"><Router size={24} /></span><strong>Your network map will appear here</strong><p>{state.error || (!endpoint ? configurationError || 'Configure the Live API to load an authenticated snapshot.' : 'Waiting for the first authorized telemetry snapshot.')}</p></div>}
           <aside className="live-map-aside">
             <div className="map-aside-heading"><span>COLLECTION STATUS</span><CircleHelp size={14} /></div>
             {data?.routers.length ? data.routers.map(router => <button className="map-router-row" key={router.id} onClick={() => setSelection(router.id)}><span className={`row-status ${selectedStatus(router)}`} /><strong>{router.id.toUpperCase()}</strong><span>{router.collection_ok ? 'Reporting' : 'No recent data'}</span><small>{router.findings_count} signals</small></button>) : <p className="map-aside-empty">Router status appears when the backend returns a snapshot.</p>}

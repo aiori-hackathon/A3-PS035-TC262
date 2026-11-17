@@ -874,3 +874,15 @@ Phase F was committed and pushed as `bf27cfb` before this work.
   and incident records.
 - Frontend lint, production build, and `git diff --check` pass. Browser visual review
   was unavailable in this session.
+
+## Unified loading experience — 17 November 2026
+- Replaced the plain full-screen “Loading NETSCOPE” card with a reusable branded
+  signal-sync animation, clearer context-specific messages, and an animated progress
+  track. Route transitions and authentication checks now explain what the app is doing.
+- Reused the compact version across dashboard summaries, saved investigations,
+  report details, demo playback, and live-monitoring snapshot checks. Replaced vague
+  loading button/status copy across account, fault-investigation, and refresh flows.
+- Added reduced-motion support and descriptive accessibility status text; loading
+  announcements identify the task rather than repeating a generic “Loading” label.
+- `npm run lint`: PASS. `npm run build`: PASS (2,568 modules). `git diff --check`:
+  PASS. Browser-based visual verification has not been performed yet.

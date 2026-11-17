@@ -5,6 +5,7 @@ import { useAuth } from "../contexts/authState";
 import { loadWorkspaceCounts, subscribeRecentInvestigations } from "../services/dashboard";
 import { historyError } from "../services/investigationHistory";
 import { savedTime, sourceOf, titleOf } from "../utils/investigationList";
+import LoadingExperience from "../components/LoadingExperience";
 import "../styles/UserDashboard.css";
 import "../styles/Dashboard.css";
 
@@ -33,7 +34,7 @@ function DashboardWorkspace() {
     <a className="dashboard-skip" href="#dashboard-content">Skip to workspace</a>
     <header className="workspace-header">
       <Link to="/" className="workspace-brand"><span className="workspace-brand-mark">N</span>NETSCOPE<span className="workspace-brand-dot">.</span></Link>
-      <div className="dashboard-header-actions"><span>Personal workspace</span><button className="workspace-logout" onClick={handleLogout} disabled={loggingOut}>{loggingOut ? "Signing out…" : "Log out ↗"}</button></div>
+      <div className="dashboard-header-actions"><span>Personal workspace</span><button className="workspace-logout" onClick={handleLogout} disabled={loggingOut}>{loggingOut ? "Ending your session…" : "Log out ↗"}</button></div>
     </header>
     <div className="dashboard-shell">
       <aside className="dashboard-sidebar">
@@ -80,13 +81,13 @@ function WorkspaceData({ onRefresh }) {
   const loading = (!counts && !countError) || (!recent && !recentError);
   return <>
     <section aria-labelledby="summary-title">
-      <div className="dashboard-section-heading"><div><h2 id="summary-title">Workspace overview</h2><p>{counts ? `Counts checked ${counts.checkedAt.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}. Refresh to update.` : "Counts include all saved records, including legacy reports."}</p></div><button onClick={onRefresh} disabled={loading}><RefreshCw size={15} />{loading ? "Loading…" : "Refresh workspace"}</button></div>
-      <div className="dashboard-metrics" aria-busy={!counts && !countError}>{[["Saved investigations", "total", "All sources, including unclassified records"], ["Demo investigations", "demo", "Saved simulated scenarios"], ["Live investigations", "live", "Saved live snapshots, not active monitoring"]].map(([label,key,caption]) => <div className="dashboard-metric" key={key}><span>{label}</span>{counts ? <strong>{counts[key]}</strong> : countError ? <strong aria-label="Count unavailable">—</strong> : <span className="dashboard-skeleton" aria-label="Loading count" />}<small>{caption}</small></div>)}</div>
+      <div className="dashboard-section-heading"><div><h2 id="summary-title">Workspace overview</h2><p>{counts ? `Counts checked ${counts.checkedAt.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}. Refresh to update.` : "Counts include all saved records, including legacy reports."}</p></div><button onClick={onRefresh} disabled={loading}><RefreshCw size={15} />{loading ? "Updating your workspace…" : "Refresh workspace"}</button></div>
+      <div className="dashboard-metrics" aria-busy={!counts && !countError}>{[["Saved investigations", "total", "All sources, including unclassified records"], ["Demo investigations", "demo", "Saved simulated scenarios"], ["Live investigations", "live", "Saved live snapshots, not active monitoring"]].map(([label,key,caption]) => <div className="dashboard-metric" key={key}><span>{label}</span>{counts ? <strong>{counts[key]}</strong> : countError ? <strong aria-label="Count unavailable">—</strong> : <span className="dashboard-skeleton" aria-label="Gathering saved investigation counts" />}<small>{caption}</small></div>)}</div>
       {countError && <p role="alert" className="dashboard-error">Counts unavailable. {countError}</p>}
     </section>
     <section className="dashboard-panel dashboard-recent" aria-labelledby="recent-title" aria-busy={!recent && !recentError}>
       <div className="dashboard-section-heading"><div><h2 id="recent-title">Recent investigations</h2><p>Up to five latest dated reports. Undated legacy records remain in My Investigations.</p></div><Link to="/dashboard/investigations">View all <ArrowUpRight size={15} /></Link></div>
-      {recentError ? <p className="dashboard-error" role="alert">Recent reports unavailable. {recentError}</p> : !recent ? <div role="status" className="dashboard-loading"><p>Loading recent reports…</p><div className="dashboard-skeleton" /><div className="dashboard-skeleton" /></div> : <>
+      {recentError ? <p className="dashboard-error" role="alert">Recent reports unavailable. {recentError}</p> : !recent ? <LoadingExperience compact title="Gathering your recent investigations" message="Checking your saved reports and sorting the latest activity." /> : <>
         {recent.cached && <p className="dashboard-cache" role="status">Showing cached history; waiting for server confirmation. This may be incomplete.</p>}
         {recent.records.length ? <ul className="dashboard-recent-list">{recent.records.map((record) => <li key={record.id}><Link to={`/dashboard/investigations/${record.id}`}><div><h3>{titleOf(record)}</h3><p>{savedTime(record) === null ? "Save date not recorded" : new Date(savedTime(record)).toLocaleString()}</p></div><span className="dashboard-source">{sourceOf(record) === "demo" ? "Demo · simulated" : sourceOf(record) === "live" ? "Live · saved" : "Source unknown"}</span><ArrowUpRight size={18} aria-hidden="true" /></Link></li>)}</ul> : counts?.total === 0 && !recent.cached ? <div className="dashboard-onboarding"><h3>Start with one investigation.</h3><ol><li>Open a simulated network scenario.</li><li>Review its evidence and suspected causes.</li><li>Save the snapshot to build your investigation history.</li></ol><Link to="/demo">Explore your first scenario →</Link></div> : <div className="dashboard-onboarding"><h3>No dated reports available</h3><p>Your archive may contain older metadata-only records. Open My Investigations to see all saved records.</p><Link to="/dashboard/investigations">Open archive →</Link></div>}
       </>}

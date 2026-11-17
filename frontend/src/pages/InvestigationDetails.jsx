@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 
 import ReportTools from "../components/ReportTools";
+import LoadingExperience from "../components/LoadingExperience";
 import { snapshotOf } from "../utils/investigationList";
 import { db } from "../services/firebase";
 import { useAuth } from "../contexts/authState";
@@ -180,7 +181,7 @@ function InvestigationReport({currentUser, investigationId}) {
 
         {loading ? (
           <ReportCard>
-            <p>Loading saved investigation...</p>
+            <LoadingExperience compact title="Rebuilding your saved report" message="Bringing its evidence and findings back into view." />
           </ReportCard>
         ) : error ? (
           <ReportCard>
