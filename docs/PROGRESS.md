@@ -860,3 +860,17 @@ Phase F was committed and pushed as `bf27cfb` before this work.
 - Frontend lint and production build pass; `git diff --check` passes. Browser-based
   visual verification was unavailable, so the design has not yet been reviewed in a
   live browser at desktop and mobile sizes.
+
+## Demo lab visualization and explanation pass — 17 November 2026
+- Added animated two-way pulses to healthy and degraded topology paths, deeper
+  warm-theme router treatments, active health rings, and a broken-link marker for
+  failed physical links. Labels make clear that the map is recorded playback and
+  pulses are illustrative, not live packets. Reduced-motion preferences are honored.
+- Added plain-language interpretations beneath diagnostic findings and evidence
+  observations. The diagnostics area now explains the difference between an observed
+  symptom and an unconfirmed root-cause hypothesis, with supporting observation counts.
+- Restyled the evidence as a chronological timeline with source, device, timestamp,
+  observation, and a concise explanation. Added context for reading topology impact
+  and incident records.
+- Frontend lint, production build, and `git diff --check` pass. Browser visual review
+  was unavailable in this session.
