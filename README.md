@@ -1,22 +1,11 @@
-# NETSCOPE · PS-035: Evidence-Based Operator Network Fault Localisation
+# NETSCOPE — Network Diagnostics & Telemetry
 
-[![AIORI-3 Hackathon](https://img.shields.io/badge/Hackathon-AIORI--3%20Cybersecurity-0052CC.svg?style=flat-square)](https://youtu.be/nVIh0pni0wo)
-[![Problem Statement](https://img.shields.io/badge/Problem%20Statement-PS--035-orange.svg?style=flat-square)](https://youtu.be/nVIh0pni0wo)
-[![Team](https://img.shields.io/badge/Team-ZNMD%20(A3--PS035--TC262)-4C1D95.svg?style=flat-square)](https://youtu.be/nVIh0pni0wo)
 [![Topology](https://img.shields.io/badge/Topology-5--Router%20eBGP%20(FRR)-10B981.svg?style=flat-square)](lab/ps035.clab.yml)
 [![Backend](https://img.shields.io/badge/Backend-Python%203%20%2F%20Flask-3776AB.svg?style=flat-square)](app/api/main.py)
 [![Frontend](https://img.shields.io/badge/Frontend-React%2019%20%2F%20Vite%208-61DAFB.svg?style=flat-square)](frontend/package.json)
 [![Tests](https://img.shields.io/badge/Tests-Passing%20(unittest)-brightgreen.svg?style=flat-square)](tests/test_diagnosis.py)
 
 > **NETSCOPE** is an evidence-based network diagnosis and telemetry correlation system built for carrier and enterprise networks. It monitors a live 5-router autonomous system (AS) topology running FRRouting (FRR) inside Containerlab, detects routing anomalies (such as eBGP session dropouts and prefix starvation), correlates bilateral symptoms into candidate link failures, performs graph-theoretic impact analysis, and persists incident lifecycles across a modern web operations center.
-
----
-
-## 🎥 Team Presentation & Solution Walkthrough
-
-As part of the **AIORI-3 Cybersecurity Hackathon**, our team prepared an introductory walkthrough presenting our understanding of Problem Statement PS-035, the architectural approach, and individual member responsibilities.
-
-▶️ **[Watch the Team Introduction Video on YouTube](https://youtu.be/nVIh0pni0wo)**
 
 ---
 
@@ -308,9 +297,8 @@ When candidate root causes are detected, the impact analyzer:
 
 ```text
 .
-├── Proposed-structure-hackathon.pdf          # Official hackathon presentation structure template
 ├── README.md                                 # Master technical documentation (this file)
-├── TEAM-ZNMD - Evidence-Based Network...pdf  # Team ZNMD official hackathon slide deck
+├── TEAM-ZNMD - Evidence-Based Network...pdf  # Project presentation
 │
 ├── app/                                      # Backend Python service
 │   ├── __init__.py
@@ -353,7 +341,7 @@ When candidate root causes are detected, the impact analyzer:
 │       ├── r4/frr.conf                       # Router R4 BGP 65004 configuration
 │       └── r5/frr.conf                       # Router R5 BGP 65005 configuration
 │
-├── src/                                      # AIORI-3 template source root
+├── src/                                      # Additional source root
 │   └── README.md                             # Template notes
 │
 └── tests/                                    # Test suite
@@ -426,7 +414,7 @@ docker exec -it clab-ps035-r1 vtysh -c "show bgp summary"
 In a **new terminal**, navigate to the project root directory:
 
 ```bash
-cd /path/to/A3-PS035-TC262
+cd /path/to/NETSCOPE
 
 # Create and activate a Python virtual environment
 python3 -m venv venv
@@ -451,7 +439,7 @@ python3 -m app.api.main
 Verify the API health check in a separate shell:
 ```bash
 curl http://127.0.0.1:5000/api/health
-# Response: {"service":"PS-035 Network Diagnosis API","status":"ok"}
+# Response: {"service":"NETSCOPE Network Diagnosis API","status":"ok"}
 ```
 
 ---
@@ -461,7 +449,7 @@ curl http://127.0.0.1:5000/api/health
 In a **third terminal**, navigate to the `frontend/` directory:
 
 ```bash
-cd /path/to/A3-PS035-TC262/frontend
+cd /path/to/NETSCOPE/frontend
 
 # Install Node dependencies
 npm install
@@ -571,7 +559,7 @@ The backend runs on `http://127.0.0.1:5000` (or `http://localhost:5173/api` via 
 - **Example Response:**
   ```json
   {
-    "service": "PS-035 Network Diagnosis API",
+    "service": "NETSCOPE Network Diagnosis API",
     "status": "ok"
   }
   ```
@@ -585,7 +573,6 @@ The backend runs on `http://127.0.0.1:5000` (or `http://localhost:5173/api` via 
   ```json
   {
     "collected_at": "2026-10-20T12:03:27.830302+00:00",
-    "project": "PS-035",
     "routers": [
       {
         "router": "r1",
@@ -738,8 +725,8 @@ The backend runs on `http://127.0.0.1:5000` (or `http://localhost:5173/api` via 
 
 ## 12. Controlled Fault Injection & Recovery Runbook
 
-See [the operator runbook](docs/FAULT_LAB_RUNBOOK.md), [PS-035 alignment and
-evaluation workflow](docs/PS035_ALIGNMENT.md), and [mentor demo and pseudocode](docs/PROTOTYPE_DEMO.md)
+See [the operator runbook](docs/FAULT_LAB_RUNBOOK.md), [lab and evaluation
+workflow](docs/PS035_ALIGNMENT.md), and [demo and pseudocode](docs/PROTOTYPE_DEMO.md)
 for guarded scenario sequencing, output handling, model training and held-out evaluation.
 
 This guide demonstrates how to simulate a network link degradation/cut, observe NETSCOPE's diagnosis, and verify recovery.
@@ -897,16 +884,6 @@ OK
 
 ---
 
-## 16. Team & Submission Details
+## License
 
-- **Hackathon:** AIORI-3 — Cybersecurity
-- **Problem Statement:** PS-035 (Evidence-Based Operator Network Fault Localisation)
-- **Team Code:** A3-PS035-TC262
-- **Team Name:** TEAM-ZNMD
-- **Video Submission:** [Watch Team Introduction on YouTube](https://youtu.be/nVIh0pni0wo)
-
----
-
-## 17. License
-
-This repository and its source code are prepared for the **AIORI-3 Cybersecurity Hackathon**. Please refer to repository commit history and official competition guidelines regarding distribution and licensing.
+Please refer to the repository commit history and applicable licensing terms regarding distribution and reuse.

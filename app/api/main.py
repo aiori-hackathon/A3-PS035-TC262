@@ -34,7 +34,7 @@ def load_latest_telemetry():
 def health():
     return jsonify({
         "status": "ok",
-        "service": "PS-035 Network Diagnosis API",
+        "service": "NETSCOPE Network Diagnosis API",
     })
 
 

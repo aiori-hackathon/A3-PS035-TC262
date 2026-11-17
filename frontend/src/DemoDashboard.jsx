@@ -246,8 +246,8 @@ function App() {
               <span>Simulation data enabled</span>
             </div>
           </div>
-          <p>AIORI-3 · PS-035</p>
-          <p>Evidence-Based Fault Localisation</p>
+          <p>Network operations workspace</p>
+          <p>Evidence-led diagnostics</p>
         </div>
       </aside>
 
@@ -1150,7 +1150,7 @@ function App() {
 
         <footer className="footer">
           <span>
-            <Activity size={14} /> NETSCOPE · AIORI-3
+            <Activity size={14} /> NETSCOPE · DEMO LAB
           </span>
           <span>
             <Clock3 size={14} />

@@ -892,3 +892,13 @@ Phase F was committed and pushed as `bf27cfb` before this work.
   changes so the signal-sync visual has time to register instead of flashing by.
   Inline data refreshes remain immediate and are not held back.
 - Lint, build, and diff checks pending.
+
+## Product-facing footer and event-label cleanup — 17 November 2026
+- Removed hackathon, team-code, and problem-statement references from the landing
+  footer, demo workspace labels, sample public scenarios, API health identity, and
+  repository overview. Internal lab scope names and safety documentation remain for
+  operator use.
+- Rebuilt the landing footer as a dark forest-themed product area with grouped Explore
+  and Your Space links, a concise product message, and a simple NETSCOPE copyright row.
+- `npm run lint`: PASS. `npm run build`: PASS (2,568 modules). `git diff --check`:
+  PASS. Internal lab identifiers and safety notes remain in operator documentation.

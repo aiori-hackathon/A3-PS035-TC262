@@ -571,27 +571,23 @@ export default function Landing() {
       {/* FOOTER */}
 
       <footer className="landing-footer">
-        <div>
+        <div className="landing-footer-main">
           <div className="landing-footer-brand">
             <Network size={21} />
             <strong>NETSCOPE</strong>
           </div>
-
           <p>See beyond the alert.</p>
-          <small>AIORI-3 · PS-035</small>
+          <span>Evidence-led network intelligence for clearer incident response.</span>
         </div>
 
-        <div className="landing-footer-links">
-          <a href="#experience">Experience</a>
-          <a href="#features">Features</a>
-          <Link to="/demo">Demo</Link>
-          <Link to="/login">Login</Link>
-        </div>
+        <nav className="landing-footer-links" aria-label="Footer navigation">
+          <div><small>EXPLORE</small><a href="#experience">Experience</a><a href="#features">Features</a><Link to="/demo">Demo lab</Link></div>
+          <div><small>YOUR SPACE</small><Link to="/login">Log in</Link><Link to="/signup">Create account</Link></div>
+        </nav>
 
         <div className="landing-footer-bottom">
-          <span>Evidence-Based Operator Network Fault Localisation</span>
-
-          <span>Prototype · Simulated demonstrations</span>
+          <span>© {new Date().getFullYear()} NETSCOPE</span>
+          <span>Clearer signals. More confident response.</span>
         </div>
       </footer>
     </div>

@@ -8,7 +8,6 @@
     "status": "healthy"
   },
   "telemetry": {
-    "project": "PS-035",
     "collected_at": null,
     "routers": [
       {
