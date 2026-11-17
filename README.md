@@ -297,57 +297,25 @@ When candidate root causes are detected, the impact analyzer:
 
 ```text
 .
-├── README.md                                 # Master technical documentation (this file)
-├── TEAM-ZNMD - Evidence-Based Network...pdf  # Project presentation
-│
-├── app/                                      # Backend Python service
-│   ├── __init__.py
-│   ├── api/
-│   │   ├── __init__.py
-│   │   └── main.py                           # Flask REST API server (:5000)
-│   ├── collector/
-│   │   ├── __init__.py
-│   │   └── telemetry.py                      # Docker exec telemetry extraction & snapshot saver
-│   └── diagnosis/
-│       ├── __init__.py
-│       ├── bgp_analyzer.py                   # Parser for 'show bgp summary' output
-│       ├── impact_analysis.py                # Graph BFS path discovery & partition assessment
-│       ├── incident_tracker.py               # Stateful incident tracker (data/incident_history.json)
-│       └── root_cause.py                     # Bilateral BGP correlation to candidate links
-│
-├── data/                                     # Telemetry snapshots & persistent history
-│   ├── incident_history.json                 # Persistent active and resolved incident records
-│   └── telemetry_*.json                      # Raw telemetry snapshots (60+ recorded runs)
-│
-├── frontend/                                 # Operator web dashboard
-│   ├── index.html                            # HTML entry point
-│   ├── package.json                          # Dependencies: React 19, Lucide, Recharts
-│   ├── vite.config.js                        # Vite bundler config with /api reverse proxy
-│   └── src/
-│       ├── App.jsx                           # Dashboard layout, SVG topology & diagnostic cards
-│       ├── App.css                           # Professional dark-theme stylesheet
-│       ├── main.jsx                          # React application root
-│       └── assets/                           # Branding assets and SVG icons
-│
-├── lab/                                      # Containerlab topology and router configurations
-│   ├── ps035.clab.yml                        # 5-node FRR network topology specification
-│   ├── ps035.clab.yml.annotations.json       # Graph layout coordinates
-│   └── configs/
-│       ├── daemons                           # FRR daemon activation (zebra=yes, bgpd=yes)
-│       ├── vtysh.conf                        # FRR CLI configuration
-│       ├── r1/frr.conf                       # Router R1 BGP 65001 configuration
-│       ├── r2/frr.conf                       # Router R2 BGP 65002 configuration
-│       ├── r3/frr.conf                       # Router R3 BGP 65003 configuration
-│       ├── r4/frr.conf                       # Router R4 BGP 65004 configuration
-│       └── r5/frr.conf                       # Router R5 BGP 65005 configuration
-│
-├── src/                                      # Additional source root
-│   └── README.md                             # Template notes
-│
-└── tests/                                    # Test suite
-    ├── __init__.py
-    └── test_diagnosis.py                     # Unit tests for diagnosis and root cause logic
+├── app/                    # Flask API, router collector, diagnosis, telemetry store
+├── deploy/                 # Ubuntu systemd telemetry uploader
+├── docs/                   # Setup, operation, live-mode, and progress notes
+├── frontend/               # React/Vite landing page and operations workspace
+├── lab/                    # Containerlab topology, FRR configs, fault scenarios
+├── tests/                  # Backend and frontend regression coverage
+├── tools/                  # Guarded lab benchmark and evaluation utilities
+├── data/                   # Local collector snapshots and incident state (ignored)
+├── firebase.json           # Firebase project/emulator configuration
+├── requirements.txt        # Backend dependencies
+└── README.md               # Project overview and operator guide
 ```
+
+The five-router lab definition lives in `lab/ps035.clab.yml`; its router-specific
+FRR configurations are in `lab/configs/r1` through `lab/configs/r5`. The topology,
+router configs, and guarded fault scenarios are versioned because they are needed to
+recreate the lab. Collector snapshots, mutable incident history, local environment
+files, dependency folders, build output, and Containerlab editor annotations are not
+committed.
 
 ---
 

@@ -926,3 +926,29 @@ Phase F was committed and pushed as `bf27cfb` before this work.
 - `npm run lint`: PASS. `npm run build`: PASS (2,568 modules). `git diff --check`:
   PASS. Browser preview is unavailable in this session, so visual timing has not been
   inspected live.
+
+## Repository and lab packaging review — 17 November 2026
+- Confirmed the versioned `lab/` contains the deployable five-router Containerlab
+  topology, all five FRR configs, fault scenarios, and topology metadata. Runtime
+  containers are VM state and do not belong in Git. Removed the unreferenced Alpine
+  smoke topology, generated graph annotation, old source backups, empty placeholder
+  source tree, and unused starter assets.
+- Added ignore rules for local telemetry snapshots, mutable incident history,
+  Containerlab annotations, common Python output, local Firebase service-account
+  files, and presentation-only PDFs. Existing telemetry and PDF copies remain local;
+  they are no longer tracked. Updated the README inventory to match the repository.
+- The active checkout is the nested project repository at
+  `A3-PS035-TC262/A3-PS035-TC262`, on `main`. The parent directory is a separate
+  stale checkout with many local deletions and is 15 commits behind; it was left
+  untouched and should not be used for commits.
+- A read-only SSH inventory of the Ubuntu VM was denied by its SSH authentication,
+  so the separate `/home/ayush/ps035` lab folder could not be compared directly to
+  the committed topology. No tracked private keys, service-account credentials, or
+  client secrets were found; the local frontend environment file is ignored.
+- Packaging checks: `frontend npm run build` PASS; staged and unstaged
+  `git diff --check` PASS; ignore rules verified for the local frontend env file,
+  dependencies, build output, local incident history, and Containerlab annotations.
+  No tests were run because this cleanup changes repository packaging and docs, not
+  application behavior. The read-only VM inventory remains blocked by SSH
+  authentication. Previous Git history still contains already-pushed telemetry
+  snapshots; removing them from the current branch does not erase history.
