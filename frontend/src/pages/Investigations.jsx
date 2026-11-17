@@ -4,6 +4,7 @@ import { ArrowLeft, ArrowUpRight, Search, Trash2, FolderSearch } from "lucide-re
 import { useAuth } from "../contexts/authState";
 import { deleteInvestigation, historyError, loadInvestigationBatch } from "../services/investigationHistory";
 import { savedTime, selectInvestigations, sourceOf, textValue, titleOf } from "../utils/investigationList";
+import LoadingExperience from "../components/LoadingExperience";
 import "../styles/UserDashboard.css";
 import "../styles/Investigations.css";
 
@@ -107,22 +108,22 @@ function InvestigationLibrary() {
       </section>
       <div className="library-results-heading"><h2 ref={resultsHeading} tabIndex={-1}>Saved reports</h2><span role="status">{matches.length} matching {matches.length === 1 ? "record" : "records"}</span></div>
       {notice && <p className="library-notice" role="status">{notice}</p>}
-      {error && <div className="library-error" role="alert">{error} <button disabled={loading} onClick={loadMore}>Retry loading</button></div>}
+      {error && <div className="library-error" role="alert">{error} <button disabled={loading} onClick={loadMore}>{loading ? "Reconnecting to history…" : "Retry loading"}</button></div>}
       <section aria-label="Saved investigations" aria-busy={loading}>
         {matches.slice(0, visible).map((record) => <article className="library-record" key={record.id}>
           <div className="library-record-top"><div><div className="library-badges"><span>{sourceOf(record) === "demo" ? "DEMO · SIMULATED" : sourceOf(record) === "live" ? "LIVE · SAVED SNAPSHOT" : "SOURCE NOT RECORDED"}</span><span>{textValue(record.status, "Status not recorded")}</span></div><h3><Link to={`/dashboard/investigations/${record.id}`}>{titleOf(record)}</Link></h3><p>{textValue(record.scenarioId, "Scenario not recorded").replaceAll("_", " ")} · {savedTime(record) === null ? "Save date not recorded" : new Date(savedTime(record)).toLocaleString()}</p></div><span className="library-snapshot">{record.snapshotJson || record.snapshot ? "Snapshot saved" : "Metadata only"}</span></div>
           <div className="library-record-bottom"><dl>{[["Findings", "findingsCount"], ["Suspected causes", "rootCausesCount"], ["Evidence", "evidenceCount"], ["Incidents", "incidentsCount"]].map(([label, field]) => <div key={field}><dt>{label}</dt><dd>{Number.isInteger(record[field]) && record[field] >= 0 ? record[field] : "—"}</dd></div>)}</dl><div className="library-actions"><Link to={`/dashboard/investigations/${record.id}`}>View report <ArrowUpRight size={15} /></Link><button aria-label={`Delete ${titleOf(record)}`} onClick={() => { setDeleteError(""); setTarget(record); }}><Trash2 size={15} /> Delete</button></div></div>
         </article>)}
-        {loading && <div className="library-empty" role="status">Loading saved investigations…</div>}
+        {loading && <LoadingExperience compact title="Gathering your investigation history" message="Opening your saved network snapshots." />}
         {!loading && !error && matches.length === 0 && <div className="library-empty"><FolderSearch size={32} /><h3>{records.length ? "No matching investigations" : "No investigations loaded"}</h3><p>{hasMore ? "Load more history to check additional records, or adjust your filters." : records.length ? "Try a different search or clear your filters." : "Save a simulated scenario from the demo to start your archive."}</p>{!records.length && !hasMore && <Link to="/demo">Explore demo →</Link>}</div>}
       </section>
-      <div className="library-pagination">{visible < matches.length && <button onClick={() => setVisible((count) => count + 10)}>Show more results ({matches.length - visible} remaining)</button>}{hasMore && <button className="library-primary" onClick={loadMore} disabled={loading}>{loading ? "Loading…" : "Load 25 more records"}</button>}</div>
+      <div className="library-pagination">{visible < matches.length && <button onClick={() => setVisible((count) => count + 10)}>Show more results ({matches.length - visible} remaining)</button>}{hasMore && <button className="library-primary" onClick={loadMore} disabled={loading}>{loading ? "Finding older reports…" : "Load 25 more records"}</button>}</div>
       <p className="library-footnote">Saved reports preserve past observations. Root-cause hypotheses are not confirmed faults. Demo reports contain simulated data.</p>
     </main>
     <dialog ref={dialog} className="library-dialog" aria-labelledby="delete-title" aria-describedby="delete-description" onCancel={(event) => { event.preventDefault(); closeDelete(); }}>
       <h2 id="delete-title">Delete investigation?</h2><p id="delete-description">“{target ? titleOf(target) : ""}” and its saved snapshot will be permanently deleted. This cannot be undone.</p>
       {deleteError && <p role="alert" className="library-error">{deleteError}</p>}
-      <div className="library-actions"><button autoFocus disabled={deleting} onClick={closeDelete}>Cancel</button><button className="library-delete" disabled={deleting} onClick={confirmDelete}>{deleting ? "Deleting…" : "Delete investigation"}</button></div>
+      <div className="library-actions"><button autoFocus disabled={deleting} onClick={closeDelete}>Cancel</button><button className="library-delete" disabled={deleting} onClick={confirmDelete}>{deleting ? "Removing saved report…" : "Delete investigation"}</button></div>
     </dialog>
   </div>;
 }

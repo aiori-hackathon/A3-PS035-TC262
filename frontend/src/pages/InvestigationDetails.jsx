@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 
 import ReportTools from "../components/ReportTools";
+import LoadingExperience from "../components/LoadingExperience";
 import { snapshotOf } from "../utils/investigationList";
 import { db } from "../services/firebase";
 import { useAuth } from "../contexts/authState";
@@ -36,6 +37,15 @@ function readable(value) {
   return String(value)
     .replaceAll("_", " ")
     .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function severityTone(value) {
+  const severity = String(value || "").toLowerCase();
+  if (severity.includes("critical") || severity.includes("emergency")) return "critical";
+  if (severity.includes("high") || severity.includes("major")) return "high";
+  if (severity.includes("medium") || severity.includes("warning")) return "warning";
+  if (severity.includes("low") || severity.includes("info")) return "low";
+  return "unknown";
 }
 
 function formatDate(value) {
@@ -171,7 +181,7 @@ function InvestigationReport({currentUser, investigationId}) {
 
         {loading ? (
           <ReportCard>
-            <p>Loading saved investigation...</p>
+            <LoadingExperience compact title="Rebuilding your saved report" message="Bringing its evidence and findings back into view." />
           </ReportCard>
         ) : error ? (
           <ReportCard>
@@ -289,7 +299,7 @@ function InvestigationReport({currentUser, investigationId}) {
                   ) : (
                     <div className="report-list">
                       {causes.map((cause, index) => (
-                        <ReportCard key={cause.id || index}>
+                        <ReportCard key={cause.id || index} className={`report-cause-card tone-${severityTone(cause.severity)}`}>
                           <div className="report-card-top">
                             <div>
                               <span className="report-small-label">
@@ -329,6 +339,8 @@ function InvestigationReport({currentUser, investigationId}) {
                   )}
                 </section>
 
+                {snapshot.diagnosis?.optional_model && <ReportCard><span className="report-small-label">EXPERIMENTAL COMPARISON</span><h2>Optional model comparison</h2><p>{snapshot.diagnosis.optional_model.reason}</p>{snapshot.diagnosis.optional_model.status === "available" && <><p>Method: {readable(snapshot.diagnosis.optional_model.algorithm)} · trained on {snapshot.diagnosis.optional_model.training_runs} runs. Relative scores are not calibrated probabilities.</p>{snapshot.diagnosis.optional_model.predictions?.map(item => <p key={item.candidate_link}><strong>{readable(item.candidate_link)}</strong> · relative score {item.relative_score}</p>)}<small>Signals considered: {(snapshot.diagnosis.optional_model.explanation || []).map(readable).join(", ") || "none"}</small></>}</ReportCard>}
+
                 <section className="report-section">
                   <ReportHeading
                     icon={AlertTriangle}
@@ -344,7 +356,7 @@ function InvestigationReport({currentUser, investigationId}) {
                   ) : (
                     <div className="report-list">
                       {findings.map((finding, index) => (
-                        <ReportCard key={finding.id || index}>
+                        <ReportCard key={finding.id || index} className={`report-finding-card tone-${severityTone(finding.severity)}`}>
                           <div className="report-card-top">
                             <h3>{readable(finding.type)}</h3>
                             <span className="report-severity">
@@ -489,7 +501,7 @@ function InvestigationReport({currentUser, investigationId}) {
                   ) : (
                     <div className="report-list">
                       {incidents.map((incident, index) => (
-                        <ReportCard key={incident.id || index}>
+                        <ReportCard key={incident.id || index} className={`report-incident-card tone-${severityTone(incident.severity)}`}>
                           <div className="report-card-top">
                             <h3>
                               {incident.title ||

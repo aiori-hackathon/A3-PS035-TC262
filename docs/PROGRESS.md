@@ -1,5 +1,24 @@
 # NETSCOPE progress — 31 October 2026
 
+## Live telemetry ingest compatibility fix
+
+### Completed
+- Corrected active probe observations to report the target router ID rather than
+  the topology endpoint key (`a` or `b`). The backend validates router IDs and
+  endpoint addresses before storing telemetry, so the previous payload was
+  rejected despite successful collection and authentication.
+- Added an ingest regression test that builds probe measurements from the lab
+  topology and verifies the backend accepts the resulting snapshot.
+
+### Verification
+- Targeted telemetry-ingest tests: PASS, 7 tests.
+- Diagnosis and telemetry-ingest tests: PASS, 9 tests.
+- Python compile check and `git diff --check`: PASS.
+- Full unittest discovery remains incomplete because the local Python environment
+  does not have `firebase_admin` installed (`tests/test_live_api.py` import error).
+- VM-side snapshot validation previously failed with
+  `Probe does not match configured link endpoints`; rerun after deploying this fix.
+
 ## Current milestone
 My Investigations, Phase A and Phase B are committed and pushed. Phase B is
 `8d1bb28` on origin/main. Phase C was committed and pushed as `bae01be`.
@@ -486,3 +505,450 @@ Phase F was committed and pushed as `bf27cfb` before this work.
 - Deployment still pending account access, Admin secret provisioning, private
   telemetry Firestore rule verification, approved UID/CORS configuration and
   commit/push approval. No cloud resources or VM uploader started yet.
+
+## Phase K — PS-035 evidence pipeline and lab workflow (15 November 2026)
+
+### Implemented locally
+- Added `lab/topology.json` as the shared five-router/five-link inventory used by
+  collection, diagnosis, impact estimation and the authenticated Live response.
+- Collector now records interface state, bounded bidirectional ICMP probes and
+  summarized recent container log events alongside BGP and address observations.
+  The hosted read-only endpoint continues to consume stored snapshots only.
+- Rule-based diagnosis combines interface state, packet loss/latency, BGP state and
+  matching log events into ranked link hypotheses with transparent weighted scores,
+  confidence labels and supporting signals. These scores are not probabilities.
+- Live and investigation screens show source, collection coverage, hypothesis rank,
+  confidence and evidence. They explicitly distinguish ICMP reachability from
+  physical-link verification and preserve an unsupported-conclusion state.
+- Live and investigation screens now display each link's probe direction, reply
+  count, measured loss and average RTT, plus parsed log events when present.
+- Log correlation excludes BGP Established/recovery events and caps repeated copies
+  of the same router/peer/interface state so log repetition alone cannot inflate a
+  candidate score.
+- Added five labeled isolated-lab fault scenarios and a fixed-command CLI. Scenario
+  listing is read-only; applying/restoring requires explicit `--confirm-lab ps035`
+  and checks that all five configured lab containers are running. No scenario was
+  applied in this work. Do not use on venue or production routers.
+- Added a held-out JSONL evaluator for Top-1/Top-3 fault ranking, unsupported
+  conclusion rate, abstention accuracy and fault-case abstention. No held-out
+  dataset was supplied, so no model accuracy is claimed.
+- Added a runbook for safe baseline → one fault → collect → restore → recovery
+  verification and controlled held-out labeling. Added a read-only Containerlab
+  preflight command and a one-shot collector output-directory option so run files
+  can stay in protected temporary storage instead of the Git checkout.
+- Increased the bounded ping sample to ten packets per direction to make the
+  delay/loss scenario more informative; collection may take longer on timeouts.
+- Ping output with a nonzero command exit but a packet summary is still counted as
+  measured loss; a timeout with no summary remains unavailable.
+- Tightened Firestore snapshot validation to require probes and summarized log
+  events to match the configured topology and to constrain measurement values.
+  Older snapshots can omit the new signals; those are treated as unavailable rather
+  than healthy.
+
+### Verification and remaining work
+- `npm --prefix frontend run lint`: PASS, exit 0.
+- `npm --prefix frontend test`: PASS, 59 tests, 0 failures/skipped. Node emits its
+  existing experimental module-mocking warning.
+- `npm --prefix frontend run build`: PASS, exit 0; 1990 modules. Deferred Firebase
+  chunk is 468.82 kB (141.09 kB gzip); entry is 374.56 kB (116.81 kB gzip). No
+  oversized-chunk warning.
+- `python3 -m compileall -q app tools`: PASS, exit 0.
+- `git diff --check`: PASS, exit 0.
+- `python3 -m unittest tests.test_diagnosis`: PASS, 2 tests.
+- `python3 -m unittest discover -s tests`: BLOCKED at two test-module imports because
+  system Python has no `flask` or `firebase_admin`; the two diagnosis tests pass
+  separately. No requirements were installed into system Python.
+- `python3 -m app.collector.fault_lab list`: PASS, lists five scenarios and states
+  that no network changes were made.
+- Lab runbook is at `docs/FAULT_LAB_RUNBOOK.md`. The read-only `check` command and
+  snapshot collection were not run because this checkout is not operating on the
+  Ubuntu VM's Docker context; no VM/container state was touched.
+- The user reconnected VS Code to `SSH: Ubuntu-VM`; the remote `/home/ayush/ps035`
+  checkout is 15 commits behind `origin/main` and shows 29 pending changes. It was
+  left untouched. A fresh remote terminal was opened, but disk and container output
+  could not be read reliably through the UI, so current VM health remains unknown.
+  Direct SSH from the local command environment timed out; no alternate Docker
+  context was used.
+- Extracted the shared command runner after startup-path review identified and
+  removed a collector import cycle. `python3 -m app.collector.telemetry --help`
+  now loads successfully without contacting Docker.
+- Ping parser spot check: PASS for total packet loss and empty/unavailable output.
+- Syslog correlation spot check: PASS; Established recovery was excluded and
+  repeated matching fault lines did not inflate the candidate score.
+- Held-out evaluation is pending; there is no labeled held-out dataset. No lab
+  collection, fault injection, VM/Docker command, cloud write or deploy was
+  performed during Phase K. Phase K was committed and pushed to origin/main as
+  `b35d2b1`.
+- Populate and independently review held-out runs before using evaluator metrics in
+  a presentation. Validate actual FRR logs and probe behavior against the target
+  Containerlab image before the regional demo.
+
+## Phase L — Persistent VM telemetry service (16 November 2026)
+
+### Implemented locally
+- Added `deploy/systemd/netscope-telemetry.service` to run the existing uploader
+  under the `ayush` account with Docker group access, restart-on-failure, a
+  root-owned environment file, read-only host filesystem protections, and no
+  Firebase credential on the VM.
+- Added `docs/LIVE_TELEMETRY_SERVICE.md` with preflight, install, status/log,
+  stop, backend-secret and Firestore quota guidance. It explicitly notes that the
+  uploader sends bounded ICMP probes once per minute and requires an isolated lab.
+- Linked the service guide from `docs/DEPLOYMENT.md`.
+
+### Verification and boundaries
+- `git diff --check`: PASS, exit 0.
+- Unit-file verification could not run because `systemd-analyze` is not installed
+  on the macOS development host. Installation and service start are not part of
+  this change. The VM checkout remains a separate stale workspace with pending
+  edits; it must be reviewed and safely updated before following the install guide.
+- No VM state, router configuration, telemetry, cloud resource or Firestore data
+  has been changed by Phase L.
+
+## Phase M — Cloud live incident lifecycle (16 November 2026)
+
+### Implemented locally
+- Firestore telemetry ingestion now derives the diagnosis from each accepted
+  snapshot and maintains bounded active/resolved incident history beside the latest
+  snapshot in the same private server-only document.
+- A continuing candidate updates its active incident; a complete healthy snapshot
+  resolves incidents no longer supported by the evidence. Incomplete router
+  collection preserves active incidents instead of falsely resolving them.
+- The read-only Live snapshot API now returns the stored incident history, allowing
+  the existing Live Monitoring incident panel to show real lifecycle records.
+- Refactored local incident reconciliation into a reusable, side-effect-free helper
+  and added regression coverage for opening, updating, resolving and incomplete
+  snapshots. Updated the Live Mode guide.
+
+### Verification and deployment status
+- Incident reconciliation tests: PASS, 2 tests.
+- Diagnosis tests: PASS, 2 tests.
+- Frontend lint: PASS, exit 0.
+- Frontend tests: PASS, 59 tests, 0 failures; Node's existing experimental module
+  mocking warning remains.
+- Frontend production build: PASS, exit 0; 1990 modules, no oversized-chunk warning.
+- `python3 -m compileall -q app tests`: PASS; `git diff --check`: PASS.
+- Telemetry-ingest integration test was added but could not run in this local Python
+  environment because Flask is not installed (`ModuleNotFoundError: flask`). The
+  backend integration result remains unverified until run in the backend environment.
+- Phase M was committed and pushed as `700cd75` to `origin/main`. Render deployment
+  state has not been verified yet. No Firestore writes were made by local checks.
+- Live VM fault drill separately verified BGP fault detection and recovery against
+  the current deployment; that operational result is recorded in the conversation,
+  not treated as Phase M cloud incident-history verification.
+
+## Phase N — Incident history triage and timeline (16 November 2026)
+
+### Implemented locally
+- Live Monitoring now filters the stored incident set to all, active or resolved
+  records and shows first observed, last observed, resolution time and observed span.
+- The API response keeps every active incident visible while filling the remaining
+  50-record response capacity with the newest closed incidents.
+- Added pure incident-history filter/span tests and bounded-history selection tests.
+- Extended the isolated UI fixture with synthetic active/resolved incident records;
+  visually checked the resolved filter and its lifecycle timeline.
+- Refreshed the Live Monitoring MVP into an operations dashboard with a responsive
+  router map, collection and incident summary cards, and focused connection status,
+  using the same warm neutral and coral palette as the rest of the workspace.
+- Replaced decorative signal animation with a quiet, selectable topology view and a
+  direct link to prerecorded demo scenarios. Saved report cards now use severity
+  accents, stronger reading hierarchy and a clearer recommended-action panel.
+
+### Verification and status
+- Frontend lint: PASS, exit 0.
+- Frontend tests: PASS, 63 tests, 0 failures; existing Node experimental module
+  mocking notice remains.
+- Frontend production build: PASS, exit 0; 1991 modules, no oversized-chunk warning.
+- Incident helper tests: PASS, 3 tests; diagnosis tests: PASS, 2 tests.
+- `python3 -m compileall -q app tests`: PASS; `git diff --check`: PASS.
+- Backend ingest integration test remains blocked in this local Python environment:
+  Flask is missing (`ModuleNotFoundError: flask`).
+- Local UI preview verified using synthetic data only. The preview server was stopped
+  after inspection. Phase N was committed and pushed as `b496869` on 16 November 2026.
+- The updated dashboard and synthetic router map were inspected in the isolated
+  local preview; no production telemetry or router controls were used.
+- Render deployment state for Phase M is still unverified; do not claim Phase N is
+  deployed.
+
+## Phase O — Bounded telemetry trends (16 November 2026)
+
+### Implemented locally
+- Each accepted Firestore upload adds one compact history sample to the same private
+  latest document. The rolling window is capped at 120 samples (about two hours at
+  the VM uploader's one-minute interval); it stores only timestamp, link ID,
+  available probe count, average RTT and packet loss.
+- Local-directory mode builds the same bounded view from the newest snapshot files.
+- Live Monitoring renders per-link RTT and packet-loss trends and leaves unavailable
+  measurements as gaps instead of treating them as zero.
+
+### Verification and status
+- Frontend lint: PASS, exit 0.
+- Frontend tests: PASS, 63 tests, 0 failures; existing Node experimental module
+  mocking notice remains.
+- Production build: PASS, exit 0; 2564 modules, no oversized-chunk warning.
+- Telemetry history helper: PASS, 3 tests. Incident tracker: PASS, 3 tests.
+- Diagnosis tests: PASS, 2 tests. `python3 -m compileall -q app tests`: PASS;
+  `git diff --check`: PASS.
+- Synthetic browser preview showed both charts with a sample RTT series, a packet
+  loss spike, a 10/120 window label, and readable axes. Preview server stopped.
+- Telemetry-ingest integration tests are BLOCKED in the local Python 3.14 runtime:
+  Flask and `firebase_admin` are not installed. Firestore persistence/API integration
+  remains unverified here. No cloud writes or deployment were performed during local
+  checks.
+- Phase O was committed and pushed as `d55ae73` on 16 November 2026.
+
+## Phase P — Direction-aware probe trends (16 November 2026)
+
+### Implemented locally
+- Historical samples now keep source and destination router for every adjacency
+  probe, preserving asymmetric RTT and packet loss rather than averaging the two
+  directions together.
+- Unavailable directions are retained as explicit gaps. Older aggregate samples
+  remain accepted and render as their original per-link series.
+- Live trend legends identify direction (for example `R1 → R2`) so operators can
+  compare the reverse path directly.
+
+### Verification and status
+- Frontend lint: PASS, exit 0. Frontend tests: PASS, 63 tests, 0 failures; Node's
+  experimental module-mocking notice remains.
+- Production build: PASS, exit 0; 2564 modules, no oversized-chunk warning.
+- Telemetry history helper: PASS, 3 tests, including asymmetric loss and unavailable
+  direction cases. Incident tracker: PASS, 3 tests; diagnosis tests: PASS, 2 tests.
+- Python compilation and `git diff --check`: PASS.
+- Synthetic browser preview showed separate `R1 → R2` and `R2 → R1` legend series
+  and a one-direction loss spike. Preview server stopped after inspection.
+- Flask/Firestore endpoint integration remains unverified because Flask and
+  `firebase_admin` are missing from the local Python environment. No cloud writes or
+  deployment were performed. Phase P was pushed to `origin/main` as `6b9f0d5`.
+
+## Phase Q — Focused trend analysis (16 November 2026)
+
+### Implemented locally
+- Live Monitoring can focus trend charts on the newest 30 minutes, 60 minutes, or
+  two hours of stored samples. Windows are anchored to the newest sample timestamp,
+  so stale telemetry is not hidden by comparing it to the browser clock.
+- Operators can filter to one topology link while retaining both directional probe
+  series. Empty samples remain chart gaps.
+- Summary metrics show average RTT, average packet loss, peak loss, and available
+  probe readings versus directional observations for the selected range and link.
+- Controls and metric cards adapt to narrow screens and retain keyboard focus styles.
+
+### Verification and status
+- Frontend lint: PASS, exit 0. Frontend tests: PASS, 66 tests, 0 failures; Node's
+  experimental module-mocking notice remains.
+- Production build: PASS, exit 0; 2565 modules transformed.
+- Telemetry history helper: PASS, 3 tests; incident tracker: PASS, 3 tests;
+  diagnosis tests: PASS, 2 tests.
+- `python3 -m compileall -q app tests`: PASS; `git diff --check`: PASS.
+- Phase P and Phase Q were committed separately as `6b9f0d5` and `8d5e2bd`, then
+  pushed to `origin/main` with user approval. The project tree was clean after push.
+
+## Phase R — Problem-statement completion: optional model and safe benchmark (16 November 2026)
+
+### Implemented locally
+- Added an opt-in standard-library Bernoulli Naive Bayes comparison trained only
+  from labeled non-held-out run records. It requires repeated examples from at least
+  two fault-link classes and a no-supported-fault class; held-out records are ignored.
+- Model features describe symptoms, coarse probe/coverage state, router and log
+  observations. They exclude expected-link labels and rule-ranked candidate links.
+  Scores are explicitly relative (not calibrated probabilities); unknown evidence and
+  a top-ranked no-fault class produce an abstention. The rule baseline is never
+  replaced and remains available when the optional model is absent or invalid.
+- Live Monitoring and selected JSON report exports can show the experimental
+  comparison, method, training-run count, relative scores and explanatory features.
+- Extended held-out evaluation to report optional-model Top-1/Top-3 and abstention
+  metrics separately from the rule baseline.
+- Added `tools/run_lab_benchmark.py`: fixed seeded scenario sequence, private
+  out-of-repository output, explicit lab confirmation, baseline requirements,
+  guaranteed restore attempt, and interface/BGP recovery comparison. Delay/loss
+  recovery additionally verifies the lab `netem` queue discipline was removed.
+- Added a mentor demo and diagnosis pseudocode in `docs/PROTOTYPE_DEMO.md`.
+- Fixed the snapshot collector's external output-directory display path; previously
+  it could save a `/tmp` snapshot and then fail while formatting the printed path.
+
+### Verification and remaining work
+- `npm run lint`: PASS, exit 0. `npm test`: PASS, 67 tests, 0 failures; Node's
+  existing experimental module-mocking notice remains. `npm run build`: PASS,
+  exit 0; 2565 modules transformed, no oversized-chunk warning.
+- Python unit suite for optional model, benchmark sequencing/rollback/recovery,
+  collector CLI, diagnosis, incident tracking and telemetry history: PASS, 20 tests.
+  Python compileall: PASS. `git diff --check`: PASS.
+- Benchmark dry-run, all five-scenario listing, and the label/train/evaluate CLI help
+  checks: PASS without Docker access or lab changes.
+- Flask/Firestore API integration checks remain BLOCKED in local Python 3.14:
+  Flask and `firebase_admin` are missing. Specifically, `tests.test_live_api` fails
+  import on missing `firebase_admin`, and `tests.test_telemetry_ingest` fails import
+  on missing Flask. No dependencies were installed globally.
+- A real five-scenario benchmark and independent held-out evaluation still require
+  repeated, operator-controlled runs on the Ubuntu VM. No faults were applied and no
+  VM/container or cloud state was changed during this phase.
+- No trained model or accuracy claim is included. At least three training examples
+  per class and a distinct, independently collected held-out set remain to be
+  collected and reviewed.
+- UI integration is covered by the frontend contract test, export regression test,
+  lint and production build. A full browser sign-in/deployed API check remains an
+  operator integration step.
+- PS-035 alignment now separates software-complete requirements from operational
+  proof still needed. The held-out dataset/run and GitHub ownership transfer remain
+  external gates. `origin` currently points to `Loki-7865/A3-PS035-TC262`; no
+  repository ownership or collaborator settings were changed.
+
+### Recovery convergence hardening
+- The initial benchmark compared one snapshot immediately after restore. The
+  recovery poll now checks every 15 seconds for up to four minutes. That fix was
+  committed and pushed as `91f2257`.
+- VM preflight exposed an unnecessary import of the hosted Flask/Firebase API from
+  the local benchmark CLI. Diagnosis and collection-completeness logic now live in
+  framework-independent modules shared by the API and CLI. This fix was committed
+  and pushed as `faf228d`; no hosted-service packages need to be installed on the VM
+  for the lab CLI.
+- First VM benchmark safely restored `link_r2_r4_down` and stopped before the next
+  fault. Investigation showed interfaces were UP and BGP sessions established, but
+  prefix counts differed from the baseline. The recovery checker was corrected to
+  compare session establishment independently of transient prefix totals and to
+  explicitly verify R4 relearns the withdrawn R5 prefix. This fix was committed and
+  pushed as `424b9ac`.
+- On the Ubuntu VM, `python3 -S -m unittest tests.test_lab_benchmark` passed all 8
+  tests, `fault_lab check` found all five fixed containers running, and the guarded
+  benchmark completed all five scenarios. Each fault snapshot was followed by a
+  verified recovery snapshot; six non-held-out labels (healthy plus five faults)
+  were appended to `/tmp/netscope-benchmark/runs.jsonl`. Run artifacts remain in
+  `/tmp`, outside Git.
+- The run is development data only. No held-out evaluation or model accuracy claim
+  has been produced. Collect an independent held-out set after diagnosis tuning is
+  frozen before reporting evaluation metrics.
+- Added an explicit `--held-out` mode to the guarded runner so a post-freeze,
+  independent six-record batch can be evaluated without mislabeling development
+  data. Regression coverage verifies both baseline and fault rows carry the flag.
+
+## UI flow continuity — 17 November 2026
+- Login and account creation now return protected-route visitors to the page they
+  originally requested. That destination survives switching between login, signup
+  and password reset, and unsafe/auth-only destinations fall back to the workspace.
+- If a signed-out visitor chooses Save in the demo, the selected scenario is carried
+  through login and restored on return. Demo scenario selection is reflected in its
+  URL so refresh preserves that context.
+- Live Monitoring now links directly into Fault Investigation with the Live source
+  preselected; switching sources keeps the choice in the URL.
+- Frontend lint: PASS. Production build: PASS (2,566 modules); no chunk-size warning.
+- Browser-based visual review was unavailable in this session, so the flow was
+  checked by source/build rather than captured in a live browser.
+
+## Live probe measurements redesign — 17 November 2026
+- Replaced the long plain-text probe list with a responsive link reachability view.
+  Each adjacency groups its two directions and shows reachability state, replies,
+  packet loss, average RTT, and a reply-rate bar.
+- Added a compact snapshot summary for measured directions, ICMP replies, and
+  aggregate packet loss. Unavailable measurements are labeled as missing evidence;
+  they are not represented as successful zero-loss probes.
+- Kept the point-in-time ICMP limitation visible in the section. Status colors and
+  labels distinguish reachable, partial-loss, no-reply, and unmeasured states.
+- `npm run lint`: PASS. `npm run build`: PASS (2,566 modules). `git diff --check`:
+  PASS. No browser-based visual review was available in this session.
+- Follow-up readability pass: increased metric, label, status, and router text sizes;
+  strengthened secondary-text contrast; enlarged cards and spacing; switched link
+  cards to a single column at intermediate widths to keep directional details legible.
+
+## Fault Investigation experience redesign — 17 November 2026
+- Restructured the page around a guided evidence workflow with a clear back-to-dashboard
+  action, source cards, a prominent diagnosis action, and distinct result, impact,
+  operator checklist, and save sections.
+- Added a responsive signal-trace hero visual with a drawing waveform, moving scan,
+  and evidence indicators. The animation represents diagnostic signal analysis and
+  does not reuse the router/topology animation.
+- Preserved demo/live investigation behavior, scenario selection, captured evidence,
+  and read-only live telemetry semantics. Added reduced-motion handling.
+- Frontend lint and production build pass; `git diff --check` passes. Browser-based
+  visual verification was unavailable, so the design has not yet been reviewed in a
+  live browser at desktop and mobile sizes.
+
+## Demo lab visualization and explanation pass — 17 November 2026
+- Added animated two-way pulses to healthy and degraded topology paths, deeper
+  warm-theme router treatments, active health rings, and a broken-link marker for
+  failed physical links. Labels make clear that the map is recorded playback and
+  pulses are illustrative, not live packets. Reduced-motion preferences are honored.
+- Added plain-language interpretations beneath diagnostic findings and evidence
+  observations. The diagnostics area now explains the difference between an observed
+  symptom and an unconfirmed root-cause hypothesis, with supporting observation counts.
+- Restyled the evidence as a chronological timeline with source, device, timestamp,
+  observation, and a concise explanation. Added context for reading topology impact
+  and incident records.
+- Frontend lint, production build, and `git diff --check` pass. Browser visual review
+  was unavailable in this session.
+
+## Unified loading experience — 17 November 2026
+- Replaced the plain full-screen “Loading NETSCOPE” card with a reusable branded
+  signal-sync animation, clearer context-specific messages, and an animated progress
+  track. Route transitions and authentication checks now explain what the app is doing.
+- Reused the compact version across dashboard summaries, saved investigations,
+  report details, demo playback, and live-monitoring snapshot checks. Replaced vague
+  loading button/status copy across account, fault-investigation, and refresh flows.
+- Added reduced-motion support and descriptive accessibility status text; loading
+  announcements identify the task rather than repeating a generic “Loading” label.
+- `npm run lint`: PASS. `npm run build`: PASS (2,568 modules). `git diff --check`:
+  PASS. Browser-based visual verification has not been performed yet.
+
+## Route transition timing — 17 November 2026
+- Kept the animated full-page transition visible for 2.2 seconds after in-app route
+  changes so the signal-sync visual has time to register instead of flashing by.
+  Inline data refreshes remain immediate and are not held back.
+- Lint, build, and diff checks pending.
+
+## Product-facing footer and event-label cleanup — 17 November 2026
+- Removed hackathon, team-code, and problem-statement references from the landing
+  footer, demo workspace labels, sample public scenarios, API health identity, and
+  repository overview. Internal lab scope names and safety documentation remain for
+  operator use.
+- Rebuilt the landing footer as a dark forest-themed product area with grouped Explore
+  and Your Space links, a concise product message, and a simple NETSCOPE copyright row.
+- `npm run lint`: PASS. `npm run build`: PASS (2,568 modules). `git diff --check`:
+  PASS. Internal lab identifiers and safety notes remain in operator documentation.
+
+## Landing page live-operations story — 17 November 2026
+- Updated the landing hero to explain authenticated router snapshots and the
+  read-only operations workspace, while keeping the interactive demo clearly
+  identified as simulated.
+- Added a dedicated Live Monitoring section describing collection coverage, BGP
+  and link state, directional probes, trends, incident history, and evidence-ranked
+  hypotheses. A labeled workflow illustration uses animated data pulses without
+  presenting sample values as real telemetry.
+- Corrected the stale capability copy that said live integration was only planned;
+  the page now links directly to authenticated Live Monitoring and the demo lab.
+- `npm run lint`: PASS. `npm run build`: PASS (2,568 modules). `git diff --check`:
+  PASS. Browser capture is unavailable in this session, so responsive visual review
+  remains unverified.
+
+## Interactive scenario animation pass — 17 November 2026
+- Animated signal traces now move across operational and degraded links; a physical
+  break gets a pulsing marker and affected routers draw attention when the selected
+  scenario changes.
+- Scenario selection and the findings/assessment cards now use short, clear motion
+  cues. Existing reduced-motion behavior disables these animations.
+- `npm run lint`: PASS. `npm run build`: PASS (2,568 modules). `git diff --check`:
+  PASS. Browser preview is unavailable in this session, so visual timing has not been
+  inspected live.
+
+## Repository and lab packaging review — 17 November 2026
+- Confirmed the versioned `lab/` contains the deployable five-router Containerlab
+  topology, all five FRR configs, fault scenarios, and topology metadata. Runtime
+  containers are VM state and do not belong in Git. Removed the unreferenced Alpine
+  smoke topology, generated graph annotation, old source backups, empty placeholder
+  source tree, and unused starter assets.
+- Added ignore rules for local telemetry snapshots, mutable incident history,
+  Containerlab annotations, common Python output, local Firebase service-account
+  files, and presentation-only PDFs. Existing telemetry and PDF copies remain local;
+  they are no longer tracked. Updated the README inventory to match the repository.
+- The active checkout is the nested project repository at
+  `A3-PS035-TC262/A3-PS035-TC262`, on `main`. The parent directory is a separate
+  stale checkout with many local deletions and is 15 commits behind; it was left
+  untouched and should not be used for commits.
+- A read-only SSH inventory of the Ubuntu VM was denied by its SSH authentication,
+  so the separate `/home/ayush/ps035` lab folder could not be compared directly to
+  the committed topology. No tracked private keys, service-account credentials, or
+  client secrets were found; the local frontend environment file is ignored.
+- Packaging checks: `frontend npm run build` PASS; staged and unstaged
+  `git diff --check` PASS; ignore rules verified for the local frontend env file,
+  dependencies, build output, local incident history, and Containerlab annotations.
+  No tests were run because this cleanup changes repository packaging and docs, not
+  application behavior. The read-only VM inventory remains blocked by SSH
+  authentication. Previous Git history still contains already-pushed telemetry
+  snapshots; removing them from the current branch does not erase history.

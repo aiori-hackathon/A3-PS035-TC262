@@ -33,3 +33,83 @@
 
 .demo-page .router-node { transform:translate(-50%, -30px); }
 @media(max-width:600px) { .demo-page .router-node { transform:translate(-50%, -22px); } }
+
+/* Demo lab: moving route pulses and clear status hierarchy. */
+.demo-page .topology-canvas { background-color:#242a24; background-image:radial-gradient(circle,#667060 1.2px,transparent 1.3px); background-size:26px 26px; box-shadow:inset 0 0 80px #090e0b77; }
+.demo-page .topology-map-stamp { position:absolute; z-index:3; top:16px; left:17px; display:flex; align-items:center; gap:9px; }
+.demo-page .topology-map-stamp > span,.demo-page .topology-map-stamp > b { display:inline-flex; align-items:center; gap:7px; padding:7px 10px; border:1px solid #ffffff24; border-radius:999px; background:#171d18e8; color:#e8eadf; font-size:9px; font-weight:800; letter-spacing:.9px; }
+.demo-page .topology-map-stamp > span i { width:7px; height:7px; border-radius:50%; background:#94c38d; box-shadow:0 0 0 4px #94c38d24; animation:demo-status-beat 1.8s ease-out infinite; }
+.demo-page .topology-map-stamp > b { color:#d2ae78; font-size:8px; }
+.demo-page .topology-lines .topology-base { opacity:.96; filter:drop-shadow(0 0 4px currentColor); }
+.demo-page .topology-lines .topology-flow { fill:none; stroke-width:3.5; stroke-dasharray:1 16; stroke-linecap:round; opacity:.98; pointer-events:none; vector-effect:non-scaling-stroke; filter:drop-shadow(0 0 5px currentColor); animation:demo-packet-flow 1.35s linear infinite; }
+.demo-page .topology-lines .flow-reverse { animation-direction:reverse; animation-duration:1.6s; opacity:.82; }
+.demo-page .topology-lines .status-degraded ~ .topology-flow { animation-duration:2.2s; }
+.demo-page .topology-lines .topology-link-break { fill:#f2aa87; stroke:#402820; stroke-width:4; vector-effect:non-scaling-stroke; filter:drop-shadow(0 0 8px #e97755); animation:demo-break-flash 1.25s ease-in-out infinite alternate; pointer-events:none; }
+.demo-page .node-circle { width:72px; height:72px; border-radius:23px; color:#d8ebd0; background:linear-gradient(145deg,#425f49,#31473a); border:1px solid #88b594; box-shadow:0 9px 28px #0008,inset 0 1px #ffffff20; }
+.demo-page .node-circle.healthy::after { position:absolute; inset:-8px; border:1px solid #8cc69877; border-radius:29px; content:''; animation:demo-node-ring 2.8s ease-out infinite; pointer-events:none; }
+.demo-page .node-circle.fault { color:#ffe0d2; background:linear-gradient(145deg,#78463a,#5b332d); border-color:#ef916e; box-shadow:0 0 28px #e877503d,inset 0 1px #ffffff24; }
+.demo-page .node-circle.unknown { color:#d1d0c8; background:linear-gradient(145deg,#55564d,#3e403a); border-color:#8f9085; }
+.demo-page .node-dot { width:13px; height:13px; border:3px solid #242a24; color:#a5d49b; animation:demo-status-beat 1.8s ease-out infinite; }
+.demo-page .node-circle.fault .node-dot { color:#f29474; }
+.demo-page .router-node strong { font-size:15px; text-shadow:0 1px 8px #000; }
+.demo-page .router-node > span { font-size:11px; font-weight:600; color:#d1d2c8; text-shadow:0 1px 8px #000; }
+.demo-page .router-node[aria-pressed=true] .node-circle { outline-color:#f0b184; box-shadow:0 0 0 7px #e77d5225,0 0 32px #e77d5280; }
+.demo-page .topology-lines g:hover .topology-base,.demo-page .topology-lines g:focus-visible .topology-base { filter:drop-shadow(0 0 7px currentColor); }
+.demo-page .topology-lines g:focus-visible { outline:none; }
+.demo-page .topology-lines g:focus-visible .topology-base { stroke-width:6!important; }
+.demo-page .legend { gap:12px; color:#55594f; font-size:12px; }
+.demo-page .legend i { width:11px; height:11px; box-shadow:0 0 0 3px #00000009; }
+.demo-page .disclaimer { padding-top:5px; color:#62645b; font-size:12px; }
+.demo-page .topology-card .link-list { gap:10px; padding-top:14px; }
+.demo-page .link-chip { min-height:58px; grid-template-columns:12px 78px minmax(90px,1fr) auto; border-radius:12px; font-size:12px; }
+.demo-page .link-chip strong { font-size:13px; }.demo-page .link-chip > span:nth-child(3),.demo-page .state-label { font-size:12px; }
+.demo-page .link-indicator.healthy { box-shadow:0 0 0 4px #57886620; }.demo-page .link-indicator.fault { box-shadow:0 0 0 4px #da655120; }
+
+/* Translate raw alerts into symptoms and likely causes. */
+.demo-page .demo-panel-topline { display:flex; align-items:center; gap:12px; padding:18px 20px 13px; border-bottom:1px solid #eee8de; }
+.demo-page .demo-panel-mark { display:grid; width:39px; height:39px; place-items:center; flex:0 0 auto; border-radius:12px; }
+.demo-page .signal-mark { background:#f9e8e1; color:#b6533b; }.demo-page .cause-mark { background:#f8eedb; color:#a56d2c; }.demo-page .evidence-mark { background:#e8f0e6; color:#477554; }
+.demo-page .demo-panel-topline > div { display:flex; min-width:0; flex-direction:column; gap:3px; flex:1; }
+.demo-page .demo-panel-topline strong { color:#30352f; font:700 15px "Space Grotesk",sans-serif; }
+.demo-page .demo-panel-topline small { color:#62645b; font-size:11px; }
+.demo-page .demo-panel-topline > b { display:grid; min-width:31px; height:31px; place-items:center; padding:0 8px; border-radius:10px; background:#f3f0e8; color:#44483f; font:750 12px "Space Grotesk",sans-serif; }
+.demo-page .demo-panel-explainer { margin:0; padding:13px 20px; border-bottom:1px solid #eee8de; background:#fbf9f5; color:#55584f; font-size:12px; line-height:1.65; }
+.demo-page .lower-grid > .panel > .finding-row,.demo-page .lower-grid > .panel > .root-cause { padding-inline:20px; }
+.demo-page .lower-grid .finding-title strong { color:#343830; font-size:13px; }
+.demo-page .lower-grid .finding-content > p { color:#55584f; font-size:12px; }
+.demo-page .demo-plain-meaning { display:flex; flex-direction:column; gap:4px; margin:10px 0 8px; padding:11px 13px; border:1px solid #e7e3d9; border-left:3px solid #c18159; border-radius:0 9px 9px 0; background:#faf7f0; }
+.demo-page .demo-plain-meaning strong { color:#73503a; font-size:10px; font-weight:800; letter-spacing:.45px; text-transform:uppercase; }
+.demo-page .demo-plain-meaning span { color:#44483f; font-size:12px; line-height:1.55; }
+.demo-page .demo-category { width:fit-content; padding:5px 8px; border-radius:6px; background:#f4efe5; color:#5e503d; font-size:10px; }
+.demo-page .finding-meta { color:#5f625a; font-size:11px; font-weight:600; }
+.demo-page .demo-citation-count { display:inline-flex; margin-top:10px; padding:5px 8px; border-radius:6px; background:#f0ece2; color:#595b52; font-size:10px; font-weight:700; }
+.demo-page .demo-meaning-note { display:flex; align-items:flex-start; gap:10px; margin:0 0 17px; padding:12px 14px; border:1px solid #e5ddca; border-radius:10px; background:#faf6eb; color:#735537; }.demo-page .demo-meaning-note svg { flex:0 0 auto; margin-top:2px; }.demo-page .demo-meaning-note p { margin:0; color:#52554b; font-size:12px; line-height:1.65; }.demo-page .demo-meaning-note strong { color:#4b4a3e; }
+.demo-page .root-cause .incident-summary { background:#fbf7ee; border-color:#e9ddc7; }
+.demo-page .root-cause .incident-summary strong { color:#5d492f; font-size:12px; }
+.demo-page .root-cause .incident-summary p { color:#45483f; font-size:12px; }
+
+/* Chronological evidence has a clear source, timestamp, and plain-language reading. */
+.demo-page .demo-evidence-panel { padding:0; }
+.demo-page .demo-evidence-panel > .demo-panel-topline { padding:18px 22px 14px; }
+.demo-page .demo-evidence-key { display:flex; flex-wrap:wrap; gap:10px 20px; padding:12px 23px; border-bottom:1px solid #e9e4da; background:#fbfaf6; color:#585c52; font-size:11px; }
+.demo-page .demo-evidence-key span { display:inline-flex; align-items:center; gap:7px; }.demo-page .demo-evidence-key i { width:9px; height:9px; border-radius:50%; background:#8b8d83; }.demo-page .demo-evidence-key .key-support { background:#b66a3a; box-shadow:0 0 0 3px #b66a3a20; }
+.demo-page .demo-evidence-event { position:relative; gap:15px; padding:18px 22px; }
+.demo-page .demo-evidence-event:not(:last-child)::before { position:absolute; top:60px; bottom:-20px; left:42px; width:2px; background:#e8e1d5; content:''; }
+.demo-page .demo-evidence-event .finding-icon { position:relative; z-index:1; width:38px; height:38px; border:3px solid #fffdf9; box-shadow:0 0 0 1px #e7e1d5; background:#f1eee6; color:#685f50; }
+.demo-page .demo-evidence-event.demo-highlight .finding-icon { background:#f4dfd2; color:#a64e32; box-shadow:0 0 0 1px #d69c7c; }
+.demo-page .demo-evidence-event .finding-title { align-items:center; flex-wrap:wrap; }
+.demo-page .demo-evidence-event .finding-title > strong { display:flex; align-items:center; gap:8px; color:#343830; font-size:13px; text-transform:none; }
+.demo-page .demo-event-id { padding:4px 7px; border:1px solid #e7e1d7; border-radius:6px; background:#f8f5ee; color:#76573d; font:750 9px "Space Grotesk",sans-serif; }
+.demo-page .demo-evidence-event .finding-content > p { margin:9px 0; color:#44483f; font-size:12px; line-height:1.6; }
+.demo-page .demo-evidence-event .demo-plain-meaning { margin:9px 0; }
+.demo-page .demo-evidence-event .finding-meta { display:block; margin-top:8px; color:#62645b; font-size:10px; }
+.demo-page .demo-evidence-event .pill { border-color:#e4dfd4; background:#f4f1e9; color:#55584f; font-size:9px; }
+.demo-page .demo-evidence-event.demo-highlight { background:#fff4e9; }
+
+@keyframes demo-packet-flow { to { stroke-dashoffset:-34; } }
+@keyframes demo-node-ring { 0% { transform:scale(.88); opacity:.8; } 85%,100% { transform:scale(1.22); opacity:0; } }
+@keyframes demo-status-beat { 0% { box-shadow:0 0 0 0 #94c38d77; } 75%,100% { box-shadow:0 0 0 7px #94c38d00; } }
+@keyframes demo-break-flash { to { opacity:.55; transform:scale(.72); } }
+@media(max-width:850px) { .demo-page .lower-grid { grid-template-columns:1fr; }.demo-page .topology-map-stamp { top:10px; left:10px; }.demo-page .topology-map-stamp > span,.demo-page .topology-map-stamp > b { padding:6px 8px; font-size:8px; } }
+@media(max-width:600px) { .demo-page .topology-map-stamp > b { display:none; }.demo-page .topology-canvas { min-height:310px; }.demo-page .node-circle { width:58px; height:58px; border-radius:18px; }.demo-page .router-node strong { font-size:12px; }.demo-page .router-node > span { font-size:9px; }.demo-page .link-chip { grid-template-columns:12px 68px minmax(0,1fr); }.demo-page .link-chip .state-label { grid-column:2 / -1; }.demo-page .demo-panel-explainer { padding:12px 15px; }.demo-page .demo-panel-topline { padding-inline:15px; }.demo-page .demo-evidence-event { padding:15px; }.demo-page .demo-evidence-event:not(:last-child)::before { left:34px; }.demo-page .demo-evidence-key { padding-inline:15px; } }
+@media(prefers-reduced-motion:reduce) { .demo-page .topology-flow,.demo-page .node-circle.healthy::after,.demo-page .node-dot,.demo-page .topology-link-break,.demo-page .topology-map-stamp i { animation:none!important; } }

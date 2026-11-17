@@ -22,12 +22,13 @@ import {
   Search,
   ShieldCheck,
 } from "lucide-react";
-import { Link } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 import { useDemoScenario } from "./hooks/useDemoScenario";
 import { findingCategory, investigationContext } from "./services/demoScenarios";
 import "./App.css";
 import "./styles/DemoEnhancements.css";
 import SaveInvestigation from "./components/SaveInvestigation";
+import LoadingExperience from "./components/LoadingExperience";
 
 const SCENARIOS = [
   {
@@ -91,6 +92,23 @@ function pretty(value) {
     .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
+function explainFinding(type) {
+  if (type === "interface_down") return "The interface is down, so this direct connection cannot carry traffic until it recovers.";
+  if (type === "bgp_session_down") return "The physical path may still exist, but these routers are not exchanging routes over BGP.";
+  if (type === "bgp_configuration_mismatch") return "The neighbor settings do not agree, which can prevent the routers from forming a BGP session.";
+  return "A diagnostic rule flagged this signal. Check the cited observations before treating it as a confirmed cause.";
+}
+
+function explainObservation(observation, source) {
+  if (observation === "down" || observation === "interface_down") return "This interface is not operational, indicating a problem on the direct link or its configuration.";
+  if (observation === "up" || observation === "interface_up") return "The interface is operational at this router; this alone does not prove end-to-end routing works.";
+  if (observation === "idle" || observation === "bgp_down") return "The BGP neighbor session is not established, so route updates are not being exchanged.";
+  if (observation === "direct_link_unreachable") return "A direct ICMP probe did not get a reply from the neighboring interface.";
+  if (observation === "direct_link_reachable") return "The neighboring interface replied to a direct probe; this does not confirm BGP is healthy.";
+  if (observation === "remote_as_mismatch") return "The configured remote autonomous-system number does not match the neighbor, preventing BGP from coming up.";
+  return `Recorded ${pretty(observation).toLowerCase()} observation from ${pretty(source).toLowerCase()}. Compare it with the related router and link signals.`;
+}
+
 function formatDate(value) {
   if (!value) return "Not available";
   const date = new Date(value);
@@ -98,7 +116,12 @@ function formatDate(value) {
 }
 
 function App() {
-  const [scenarioId, setScenarioId] = useState("healthy");
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [scenarioId, setScenarioId] = useState(() => {
+    const requested = new URLSearchParams(location.search).get("scenario");
+    return SCENARIOS.some((scenario) => scenario.id === requested) ? requested : "healthy";
+  });
   const [selectedLink, setSelectedLink] = useState(null);
   const [view, setView] = useState("overview");
   const [reload, setReload] = useState(0);
@@ -155,6 +178,11 @@ function App() {
   function clearSelection() { setSelectedLink(null); setSelectedRouter(null); }
   function changeScenario(id) {
     setScenarioId(id);
+    const query = new URLSearchParams(location.search);
+    if (id === "healthy") query.delete("scenario");
+    else query.set("scenario", id);
+    const queryString = query.toString();
+    navigate({ pathname: location.pathname, search: queryString ? `?${queryString}` : "", hash: location.hash }, { replace: true });
     clearSelection();
     setView("overview");
   }
@@ -218,8 +246,8 @@ function App() {
               <span>Simulation data enabled</span>
             </div>
           </div>
-          <p>AIORI-3 · PS-035</p>
-          <p>Evidence-Based Fault Localisation</p>
+          <p>Network operations workspace</p>
+          <p>Evidence-led diagnostics</p>
         </div>
       </aside>
 
@@ -244,7 +272,7 @@ function App() {
             disabled={loading}
           >
             <RefreshCw size={17} className={loading ? "spin" : ""} />
-            {loading ? "Loading..." : "Reload scenario"}
+            {loading ? "Replaying lab snapshot…" : "Reload scenario"}
           </button>
           </div>
         </header>
@@ -515,7 +543,7 @@ function App() {
           </div>
         )}
 
-        {loading && <p className="demo-loading" role="status">Loading recorded scenario… Previous observations are hidden until this snapshot is ready.</p>}
+        {loading && <LoadingExperience compact title="Staging your lab scenario" message="Loading the recorded router readings and diagnosis for this walkthrough." />}
         {data && <>
         <div className="demo-provenance" role="status"><strong>{data.scenario.name || data.scenario.id}</strong><span>Recorded telemetry: {formatDate(data.telemetry.collected_at)}</span><span>Prerecorded diagnosis · Reload reads the same fixture; no live analysis runs.</span></div>
         <section className="stats-grid" style={{ marginTop: 25 }}>
@@ -569,6 +597,7 @@ function App() {
 
           <div className="topology-card">
             <div className="topology-canvas">
+              <div className="topology-map-stamp"><span><i /> RECORDED LAB</span><b>ILLUSTRATIVE FLOW</b></div>
               <svg
                 className="topology-lines"
                 viewBox="0 0 700 300"
@@ -580,16 +609,11 @@ function App() {
                   const a = POSITIONS[link.a];
                   const b = POSITIONS[link.b];
                   const status = linkStatus(link.id);
-                  const color =
-                    status === "failed"
-                      ? COLORS.red
-                      : status === "degraded"
-                        ? COLORS.amber
-                        : status === "healthy"
-                          ? "#83bb8d"
-                          : "#a8a8a1";
-
                   if (!a || !b) return null;
+                  const physicalDown = link.physical_status === "down" || status === "failed";
+                  const baseColor = physicalDown ? COLORS.red : status === "degraded" ? "#91a47f" : status === "healthy" ? "#83bb8d" : "#a8a8a1";
+                  const flowColor = status === "degraded" ? COLORS.amber : COLORS.green;
+                  const path = `M ${a.x} ${a.y} L ${b.x} ${b.y}`;
                   return (
                     <g key={link.id} role="button" tabIndex={0} aria-label={`Inspect link ${link.id}: ${pretty(status)}`} aria-pressed={selectedLink === link.id} onClick={() => openLink(link.id)} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openLink(link.id); } }}>
                     <title>{link.id}: {pretty(status)}</title>
@@ -599,15 +623,21 @@ function App() {
                       y1={a.y}
                       x2={b.x}
                       y2={b.y}
-                      stroke={color}
+                      className={`topology-base status-${status}`}
+                      stroke={baseColor}
                       style={{
-                        stroke: color,
+                        stroke: baseColor,
                         strokeWidth: selectedLink === link.id ? 5 : 3,
-                        strokeDasharray: status === "healthy" ? "none" : "8 6",
+                        strokeDasharray: physicalDown ? "8 7" : "none",
                         cursor: "pointer",
                         pointerEvents: "stroke",
                       }}
                     />
+                    {(status === "healthy" || status === "degraded") && <>
+                      <path d={path} className="topology-flow flow-forward" stroke={flowColor} />
+                      <path d={`M ${b.x} ${b.y} L ${a.x} ${a.y}`} className="topology-flow flow-reverse" stroke={flowColor} />
+                    </>}
+                    {physicalDown && <circle className="topology-link-break" cx={(a.x + b.x) / 2} cy={(a.y + b.y) / 2} r="5" />}
                     </g>
                   );
                 })}
@@ -692,8 +722,7 @@ function App() {
             </div>
 
             <p className="disclaimer">
-              Simulated observations. Physical topology connectivity does not
-              guarantee actual routing reachability.
+              Recorded scenario playback. Moving dots illustrate traffic on available paths; they are not live packets. A physical path can be up while BGP routing is down.
             </p>
           </div>
         </section>
@@ -818,14 +847,16 @@ function App() {
           <div className="section-heading">
             <div>
               <div style={labelStyle}>04 / UNDERSTAND</div>
-              <h3 style={{ marginTop: 8 }}>Behind the alerts.</h3>
-              <p>Individual findings and correlated root causes.</p>
+              <h3 style={{ marginTop: 8 }}>What the signals mean.</h3>
+              <p>Separate directly observed symptoms from the leading explanation they may support.</p>
             </div>
             <span className="pill">{findings.length} findings</span>
           </div>
 
           <div className="lower-grid">
             <div className="panel">
+              <div className="demo-panel-topline"><span className="demo-panel-mark signal-mark"><Activity size={17} /></span><div><strong>Observed signals</strong><small>What the routers reported</small></div><b>{findings.length}</b></div>
+              <p className="demo-panel-explainer">A finding is one abnormal reading, such as an interface going down or a routing session dropping. It describes a symptom; by itself it does not prove the underlying cause.</p>
               {findings.length === 0 ? (
                 <Empty
                   icon={CheckCircle2}
@@ -849,6 +880,7 @@ function App() {
                         {item.message ||
                           `Abnormal observation on ${item.link || item.router}.`}
                       </p>
+                      <div className="demo-plain-meaning"><strong>In plain language</strong><span>{explainFinding(item.type)}</span></div>
                       <span className="demo-category">{findingCategory(item, causes)}</span>
                       <span className="finding-meta">
                         {item.router} · {item.link || "Router finding"}
@@ -860,6 +892,8 @@ function App() {
             </div>
 
             <div className="panel">
+              <div className="demo-panel-topline"><span className="demo-panel-mark cause-mark"><GitBranch size={17} /></span><div><strong>Leading explanation</strong><small>Signals grouped into a hypothesis</small></div><b>{causes.length}</b></div>
+              <p className="demo-panel-explainer">A root-cause candidate is the diagnosis that best connects several findings. Treat it as a hypothesis until an operator verifies it.</p>
               {causes.length === 0 ? (
                 <Empty
                   icon={ShieldCheck}
@@ -884,8 +918,9 @@ function App() {
                       </span>
                     </div>
                     <div className="incident-summary">
-                      <strong>Suspected root cause</strong>
+                      <strong>Why this is suspected</strong>
                       <p>{cause.explanation || cause.assessment}</p>
+                      {cause.evidence_ids?.length > 0 && <span className="demo-citation-count">{cause.evidence_ids.length} supporting observations</span>}
                     </div>
                     <button
                       className="refresh-button"
@@ -910,12 +945,14 @@ function App() {
             <div>
               <div style={labelStyle}>05 / TRACE</div>
               <h3 style={{ marginTop: 8 }}>The evidence trail.</h3>
-              <p>Every observation in chronological order. Highlighted records support the selected router or link.</p>
+              <p>Follow the timeline from raw router readings to the symptoms they support. Select a router or link to highlight related records.</p>
             </div>
             <span className="pill">{evidence.length} observations</span>
           </div>
 
-          <div className="panel">
+          <div className="panel demo-evidence-panel">
+            <div className="demo-panel-topline"><span className="demo-panel-mark evidence-mark"><Database size={17} /></span><div><strong>Observation timeline</strong><small>Earliest signal first · source and device shown on every record</small></div><b>{evidence.length}</b></div>
+            <div className="demo-evidence-key"><span><i className="key-observation" /> Raw observation</span><span><i className="key-support" /> Supports the selected diagnosis</span></div>
             {evidence.length === 0 ? (
               <Empty
                 icon={Database}
@@ -926,16 +963,17 @@ function App() {
               [...evidence]
                 .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
                 .map((item, i) => (
-                  <div className={`finding-row ${highlightedEvidence.has(item.id) ? "demo-highlight" : ""}`} key={item.id || i}>
+                  <div className={`finding-row demo-evidence-event ${highlightedEvidence.has(item.id) ? "demo-highlight" : ""}`} key={item.id || i}>
                     <div className="finding-icon">
                       <Activity size={19} />
                     </div>
                     <div className="finding-content">
                       <div className="finding-title">
-                        <strong>{item.id} · {pretty(item.source)}</strong>
+                        <strong><span className="demo-event-id">{item.id}</span>{pretty(item.source)}</strong>
                         <span className="pill">{pretty(item.observation)}</span>
                       </div>
                       <p>{item.message}</p>
+                      <div className="demo-plain-meaning"><strong>What this tells us</strong><span>{explainObservation(item.observation, item.source)}</span></div>
                       <span className="finding-meta">
                         {item.router} · {item.link || "Network"} ·{" "}
                         {formatDate(item.timestamp)}
@@ -952,7 +990,7 @@ function App() {
             <div>
               <div style={labelStyle}>06 / TRACK</div>
               <h3 style={{ marginTop: 8 }}>Incident records.</h3>
-              <p>Recorded incidents for the chosen simulation.</p>
+              <p>An incident groups related findings into one trackable event. It records what was affected and when it was detected.</p>
             </div>
             <span className="pill">{incidents.length} incidents</span>
           </div>
@@ -1005,6 +1043,7 @@ function App() {
           </div>
 
           <div className="panel" style={{ padding: 25 }}>
+            <div className="demo-meaning-note"><Info size={17} /><p><strong>How to read this:</strong> a listed alternate path describes physical topology only. It does not prove routers have working routes over that path.</p></div>
             <div
               style={{
                 display: "flex",
@@ -1111,7 +1150,7 @@ function App() {
 
         <footer className="footer">
           <span>
-            <Activity size={14} /> NETSCOPE · AIORI-3
+            <Activity size={14} /> NETSCOPE · DEMO LAB
           </span>
           <span>
             <Clock3 size={14} />

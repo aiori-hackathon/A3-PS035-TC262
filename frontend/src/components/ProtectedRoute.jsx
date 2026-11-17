@@ -1,5 +1,6 @@
 import { Navigate, useLocation } from "react-router";
 import { useAuth } from "../contexts/authState";
+import LoadingExperience from "./LoadingExperience";
 
 export default function ProtectedRoute({ children }) {
   const { currentUser, loading } = useAuth();
@@ -7,10 +8,11 @@ export default function ProtectedRoute({ children }) {
 
   if (loading) {
     return (
-      <main className="auth-page">
-        <div className="auth-card">
-          <p role="status">Checking your session…</p>
-        </div>
+      <main className="netscope-loading-page">
+        <LoadingExperience
+          title="Checking your access"
+          message="Verifying your session before opening the workspace."
+        />
       </main>
     );
   }

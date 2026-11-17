@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "scope": "isolated ps035 Containerlab only",
+  "scenarios": [
+    {"id":"link_r2_r4_down","fault_type":"interface_down","expected_link":"R2-R4","target":"r2 eth2","description":"Bring down the R2-R4 lab interface."},
+    {"id":"bgp_r1_r2_shutdown","fault_type":"bgp_peer_shutdown","expected_link":"R1-R2","target":"r1 neighbor 10.0.12.2","description":"Administratively shut the R1 to R2 BGP peer."},
+    {"id":"route_r5_withdrawal","fault_type":"prefix_withdrawal","expected_link":"R4-R5","target":"r5 192.168.5.1/32","description":"Withdraw R5's lab-only loopback prefix while keeping the link up."},
+    {"id":"degraded_r2_r4","fault_type":"delay_and_loss","expected_link":"R2-R4","target":"r2 eth2","description":"Apply 200 ms delay and 20% packet loss to the R2-R4 lab interface."},
+    {"id":"link_r3_r4_down","fault_type":"interface_down","expected_link":"R3-R4","target":"r3 eth2","description":"Bring down the R3-R4 lab interface."}
+  ]
+}

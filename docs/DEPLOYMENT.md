@@ -96,7 +96,9 @@ Before uploading telemetry, verify Firestore client rules deny all browser acces
 (read and write) to `_netscope_private/**`, including overlapping wildcard grants.
 The Admin SDK accesses it through IAM. Do not overwrite existing owner rules.
 
-On the VM, use the existing collector plus `app/collector/upload.py`. Set
+On the VM, use the existing collector plus `app/collector/upload.py`. A hardened
+systemd unit, setup steps and verification guidance are in
+`docs/LIVE_TELEMETRY_SERVICE.md`. Set
 NETSCOPE_UPLOAD_URL=https://SERVICE.onrender.com/api/telemetry/ingest and the same
 NETSCOPE_INGEST_TOKEN in a protected environment file, then run
 `python3 -m app.collector.upload` under a service supervisor. No Firebase Admin

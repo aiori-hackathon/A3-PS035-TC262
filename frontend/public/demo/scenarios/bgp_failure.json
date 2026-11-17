@@ -8,7 +8,6 @@
     "status": "warning"
   },
   "telemetry": {
-    "project": "PS-035",
     "collected_at": "2026-10-24T11:00:15Z",
     "routers": [
       {

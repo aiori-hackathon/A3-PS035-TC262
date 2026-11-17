@@ -1,22 +1,11 @@
-# NETSCOPE · PS-035: Evidence-Based Operator Network Fault Localisation
+# NETSCOPE — Network Diagnostics & Telemetry
 
-[![AIORI-3 Hackathon](https://img.shields.io/badge/Hackathon-AIORI--3%20Cybersecurity-0052CC.svg?style=flat-square)](https://youtu.be/nVIh0pni0wo)
-[![Problem Statement](https://img.shields.io/badge/Problem%20Statement-PS--035-orange.svg?style=flat-square)](https://youtu.be/nVIh0pni0wo)
-[![Team](https://img.shields.io/badge/Team-ZNMD%20(A3--PS035--TC262)-4C1D95.svg?style=flat-square)](https://youtu.be/nVIh0pni0wo)
 [![Topology](https://img.shields.io/badge/Topology-5--Router%20eBGP%20(FRR)-10B981.svg?style=flat-square)](lab/ps035.clab.yml)
 [![Backend](https://img.shields.io/badge/Backend-Python%203%20%2F%20Flask-3776AB.svg?style=flat-square)](app/api/main.py)
 [![Frontend](https://img.shields.io/badge/Frontend-React%2019%20%2F%20Vite%208-61DAFB.svg?style=flat-square)](frontend/package.json)
 [![Tests](https://img.shields.io/badge/Tests-Passing%20(unittest)-brightgreen.svg?style=flat-square)](tests/test_diagnosis.py)
 
 > **NETSCOPE** is an evidence-based network diagnosis and telemetry correlation system built for carrier and enterprise networks. It monitors a live 5-router autonomous system (AS) topology running FRRouting (FRR) inside Containerlab, detects routing anomalies (such as eBGP session dropouts and prefix starvation), correlates bilateral symptoms into candidate link failures, performs graph-theoretic impact analysis, and persists incident lifecycles across a modern web operations center.
-
----
-
-## 🎥 Team Presentation & Solution Walkthrough
-
-As part of the **AIORI-3 Cybersecurity Hackathon**, our team prepared an introductory walkthrough presenting our understanding of Problem Statement PS-035, the architectural approach, and individual member responsibilities.
-
-▶️ **[Watch the Team Introduction Video on YouTube](https://youtu.be/nVIh0pni0wo)**
 
 ---
 
@@ -291,12 +280,16 @@ When candidate root causes are detected, the impact analyzer:
 | **Graph-Based Impact Analysis** | Verified | `app/diagnosis/impact_analysis.py` | Graph BFS computing partition risks and redundant path availability. |
 | **Persistent Incident Tracker** | Verified | `app/diagnosis/incident_tracker.py` | Assigns IDs (`LINK-X-Y-001`), transitions `ACTIVE` ➔ `RESOLVED`. |
 | **Flask REST API (5 Routes)** | Verified | `app/api/main.py` | Provides health, telemetry, diagnosis, incidents, and refresh endpoints. |
-| **React 19 Operations Dashboard** | Verified | `frontend/src/App.jsx` | Dark-mode NOC interface with real-time SVG topology visualization. |
+| **React 19 Operations Dashboard** | Verified | `frontend/src/App.jsx` | Protected workspace with read-only live snapshots, selectable topology, and incident triage. |
+| **Bounded Live Probe Trends** | Implemented | `app/api/telemetry_history.py`, `frontend/src/pages/LiveMonitoring.jsx` | Direction-specific RTT and packet-loss charts over the newest 120 collected samples; unavailable probes remain gaps. |
 | **Automated Unit Testing** | Verified | `tests/test_diagnosis.py` | Validates BGP analyzer and root cause correlation logic. |
-| **Active ICMP Ping Probing** | Roadmap | *Planned* | Background ICMP probes across loopback pairs to detect packet loss. |
-| **Automated Syslog Ingestion** | Roadmap | *Planned* | Streaming syslog parser for real-time interface flap notifications. |
-| **Automated Fault-Injection Suite** | Roadmap | *Planned* | CLI script executing all 5 seeded hackathon fault scenarios in sequence. |
-| **AI/ML Secondary Diagnostic Model**| Roadmap | *Optional Extension* | Supervised classification model comparing predictions against baseline. |
+| **Active ICMP Ping Probing** | Verified | `app/collector/measurements.py` | Bounded probes on configured adjacencies; reports collection-time reachability, loss, and RTT when available. |
+| **Router Log Parsing** | Implemented | `app/diagnosis/measurements.py` | Best-effort parsing of available container logs; not a streaming syslog receiver. |
+| **Five Seeded Fault Scenarios** | Implemented | `lab/fault_scenarios.json`, `app/collector/fault_lab.py` | Fixed-command apply/restore with explicit isolated-lab confirmation. |
+| **Rule-Based Diagnostic Baseline** | Implemented | `app/diagnosis/root_cause.py`, `docs/PS035_ALIGNMENT.md` | Transparent evidence-ranked hypotheses, with explicit insufficient-evidence abstention. |
+| **Guarded Benchmark Runner** | Implemented; VM run pending | `tools/run_lab_benchmark.py` | Baseline → fault → restore → interface/BGP recovery check. No full five-scenario run claimed yet. |
+| **Held-Out Evaluation** | Evaluator implemented; dataset pending | `tools/evaluate_runs.py` | Top-1/Top-3 and unsupported-conclusion metrics require independent labeled held-out runs. |
+| **Optional AI/ML Comparison** | Implemented; trained model pending | `app/diagnosis/optional_model.py`, `tools/train_optional_model.py` | Opt-in Naive Bayes comparison; rule baseline remains primary and no quality claim is made. |
 
 ---
 
@@ -304,58 +297,25 @@ When candidate root causes are detected, the impact analyzer:
 
 ```text
 .
-├── Proposed-structure-hackathon.pdf          # Official hackathon presentation structure template
-├── README.md                                 # Master technical documentation (this file)
-├── TEAM-ZNMD - Evidence-Based Network...pdf  # Team ZNMD official hackathon slide deck
-│
-├── app/                                      # Backend Python service
-│   ├── __init__.py
-│   ├── api/
-│   │   ├── __init__.py
-│   │   └── main.py                           # Flask REST API server (:5000)
-│   ├── collector/
-│   │   ├── __init__.py
-│   │   └── telemetry.py                      # Docker exec telemetry extraction & snapshot saver
-│   └── diagnosis/
-│       ├── __init__.py
-│       ├── bgp_analyzer.py                   # Parser for 'show bgp summary' output
-│       ├── impact_analysis.py                # Graph BFS path discovery & partition assessment
-│       ├── incident_tracker.py               # Stateful incident tracker (data/incident_history.json)
-│       └── root_cause.py                     # Bilateral BGP correlation to candidate links
-│
-├── data/                                     # Telemetry snapshots & persistent history
-│   ├── incident_history.json                 # Persistent active and resolved incident records
-│   └── telemetry_*.json                      # Raw telemetry snapshots (60+ recorded runs)
-│
-├── frontend/                                 # Operator web dashboard
-│   ├── index.html                            # HTML entry point
-│   ├── package.json                          # Dependencies: React 19, Lucide, Recharts
-│   ├── vite.config.js                        # Vite bundler config with /api reverse proxy
-│   └── src/
-│       ├── App.jsx                           # Dashboard layout, SVG topology & diagnostic cards
-│       ├── App.css                           # Professional dark-theme stylesheet
-│       ├── main.jsx                          # React application root
-│       └── assets/                           # Branding assets and SVG icons
-│
-├── lab/                                      # Containerlab topology and router configurations
-│   ├── ps035.clab.yml                        # 5-node FRR network topology specification
-│   ├── ps035.clab.yml.annotations.json       # Graph layout coordinates
-│   └── configs/
-│       ├── daemons                           # FRR daemon activation (zebra=yes, bgpd=yes)
-│       ├── vtysh.conf                        # FRR CLI configuration
-│       ├── r1/frr.conf                       # Router R1 BGP 65001 configuration
-│       ├── r2/frr.conf                       # Router R2 BGP 65002 configuration
-│       ├── r3/frr.conf                       # Router R3 BGP 65003 configuration
-│       ├── r4/frr.conf                       # Router R4 BGP 65004 configuration
-│       └── r5/frr.conf                       # Router R5 BGP 65005 configuration
-│
-├── src/                                      # AIORI-3 template source root
-│   └── README.md                             # Template notes
-│
-└── tests/                                    # Test suite
-    ├── __init__.py
-    └── test_diagnosis.py                     # Unit tests for diagnosis and root cause logic
+├── app/                    # Flask API, router collector, diagnosis, telemetry store
+├── deploy/                 # Ubuntu systemd telemetry uploader
+├── docs/                   # Setup, operation, live-mode, and progress notes
+├── frontend/               # React/Vite landing page and operations workspace
+├── lab/                    # Containerlab topology, FRR configs, fault scenarios
+├── tests/                  # Backend and frontend regression coverage
+├── tools/                  # Guarded lab benchmark and evaluation utilities
+├── data/                   # Local collector snapshots and incident state (ignored)
+├── firebase.json           # Firebase project/emulator configuration
+├── requirements.txt        # Backend dependencies
+└── README.md               # Project overview and operator guide
 ```
+
+The five-router lab definition lives in `lab/ps035.clab.yml`; its router-specific
+FRR configurations are in `lab/configs/r1` through `lab/configs/r5`. The topology,
+router configs, and guarded fault scenarios are versioned because they are needed to
+recreate the lab. Collector snapshots, mutable incident history, local environment
+files, dependency folders, build output, and Containerlab editor annotations are not
+committed.
 
 ---
 
@@ -422,7 +382,7 @@ docker exec -it clab-ps035-r1 vtysh -c "show bgp summary"
 In a **new terminal**, navigate to the project root directory:
 
 ```bash
-cd /path/to/A3-PS035-TC262
+cd /path/to/NETSCOPE
 
 # Create and activate a Python virtual environment
 python3 -m venv venv
@@ -447,7 +407,7 @@ python3 -m app.api.main
 Verify the API health check in a separate shell:
 ```bash
 curl http://127.0.0.1:5000/api/health
-# Response: {"service":"PS-035 Network Diagnosis API","status":"ok"}
+# Response: {"service":"NETSCOPE Network Diagnosis API","status":"ok"}
 ```
 
 ---
@@ -457,7 +417,7 @@ curl http://127.0.0.1:5000/api/health
 In a **third terminal**, navigate to the `frontend/` directory:
 
 ```bash
-cd /path/to/A3-PS035-TC262/frontend
+cd /path/to/NETSCOPE/frontend
 
 # Install Node dependencies
 npm install
@@ -567,7 +527,7 @@ The backend runs on `http://127.0.0.1:5000` (or `http://localhost:5173/api` via 
 - **Example Response:**
   ```json
   {
-    "service": "PS-035 Network Diagnosis API",
+    "service": "NETSCOPE Network Diagnosis API",
     "status": "ok"
   }
   ```
@@ -581,7 +541,6 @@ The backend runs on `http://127.0.0.1:5000` (or `http://localhost:5173/api` via 
   ```json
   {
     "collected_at": "2026-10-20T12:03:27.830302+00:00",
-    "project": "PS-035",
     "routers": [
       {
         "router": "r1",
@@ -734,6 +693,10 @@ The backend runs on `http://127.0.0.1:5000` (or `http://localhost:5173/api` via 
 
 ## 12. Controlled Fault Injection & Recovery Runbook
 
+See [the operator runbook](docs/FAULT_LAB_RUNBOOK.md), [lab and evaluation
+workflow](docs/PS035_ALIGNMENT.md), and [demo and pseudocode](docs/PROTOTYPE_DEMO.md)
+for guarded scenario sequencing, output handling, model training and held-out evaluation.
+
 This guide demonstrates how to simulate a network link degradation/cut, observe NETSCOPE's diagnosis, and verify recovery.
 
 > [!CAUTION]
@@ -878,27 +841,17 @@ OK
 
 ### Known Limitations
 1. **Topology Impact Estimation vs. Live RIB:** `impact_analysis.py` computes connected components from static graph definitions and active incidents. It identifies whether topological bypass paths exist, but does not independently verify live route convergence or withdrawn prefix announcements.
-2. **Synchronous Polling:** Telemetry collection currently runs synchronously via Docker CLI execution upon a `/api/refresh` request rather than an asynchronous streaming telemetry daemon.
+2. **Collection and streaming:** The Ubuntu VM service uploads a bounded snapshot on its configured interval, while each collector cycle still queries routers sequentially through Docker CLI. Live Monitoring reads stored snapshots; it does not trigger collection. The optional privileged refresh endpoint remains disabled by default.
 3. **Environment:** Containerlab requires a Linux environment (or a Linux VM on macOS/Windows) due to kernel network namespace constraints.
 
 ### Proposed Roadmap Extensions
 - [ ] **Asynchronous Syslog Receiver:** An integrated syslog daemon (RFC 5424) listening for immediate link down/up traps.
 - [ ] **Active ICMP Probe Matrix:** Periodic ping meshes across loopbacks (`192.168.1.1` to `192.168.5.1`) to detect asymmetric latency and packet loss.
-- [ ] **Automated Benchmark Scenario Runner:** A test harness executing all 5 seeded hackathon fault scenarios, evaluating Top-1 and Top-3 accuracy against ground truth.
-- [ ] **Machine Learning Diagnostic Model:** An optional supervised classification model evaluated in tandem with the rule-based baseline.
+- [x] **Automated Benchmark Scenario Runner:** A guarded runner now sequences baseline, each fixed seeded fault, restoration and interface/BGP recovery comparison, then records non-held-out labels. A full run still requires the isolated Ubuntu lab and operator confirmation; held-out accuracy is not claimed without independently collected labels.
+- [x] **Optional Machine Learning Diagnostic Model:** An opt-in, explainable Naive Bayes comparison can be trained from operator-labeled runs and evaluated separately on held-out records. No trained model or quality claim is shipped until real labeled runs exist.
 
 ---
 
-## 16. Team & Submission Details
+## License
 
-- **Hackathon:** AIORI-3 — Cybersecurity
-- **Problem Statement:** PS-035 (Evidence-Based Operator Network Fault Localisation)
-- **Team Code:** A3-PS035-TC262
-- **Team Name:** TEAM-ZNMD
-- **Video Submission:** [Watch Team Introduction on YouTube](https://youtu.be/nVIh0pni0wo)
-
----
-
-## 17. License
-
-This repository and its source code are prepared for the **AIORI-3 Cybersecurity Hackathon**. Please refer to repository commit history and official competition guidelines regarding distribution and licensing.
+Please refer to the repository commit history and applicable licensing terms regarding distribution and reuse.

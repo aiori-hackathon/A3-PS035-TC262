@@ -1,9 +1,11 @@
 import json
 import os
 import unittest
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from unittest.mock import patch, MagicMock
 from app.api.main import app
+from app.collector.measurements import probe_link
+from app.topology import load_topology
 
 
 class IngestTests(unittest.TestCase):
@@ -12,6 +14,7 @@ class IngestTests(unittest.TestCase):
         self.env.start()
         self.addCleanup(self.env.stop)
         self.store = patch('app.api.telemetry_store.document').start()
+        self.store.return_value.get.return_value.exists = False
         self.addCleanup(patch.stopall)
         self.client = app.test_client()
         self.headers = {'Authorization':'Bearer '+'x'*40}
@@ -33,6 +36,89 @@ class IngestTests(unittest.TestCase):
         self.assertIsInstance(payload,bytes)
         self.assertNotIn('private',payload.decode())
         self.assertEqual(len(json.loads(payload)['routers']),5)
+        self.assertEqual(json.loads(self.store.return_value.set.call_args.args[0]['incident_history']), [])
+
+    def test_cloud_upload_opens_and_resolves_incident_history(self):
+        class Record:
+            def __init__(self, value=None):
+                self.exists = value is not None
+                self.value = value or {}
+
+            def to_dict(self):
+                return self.value
+
+        self.store.return_value.get.side_effect = [Record(), Record(), Record()]
+        baseline_time = datetime.now(timezone.utc)
+        fault = {
+            **self.data,
+            'collected_at': baseline_time.isoformat(),
+            'routers': [
+                {**router, 'bgp': {**router['bgp'], 'output': (
+                    '10.0.12.2 4 65002 1 1 0 0 0 00:00:01 Idle 0 N/A\n'
+                    if router['router'] == 'r1' else '')}}
+                for router in self.data['routers']
+            ],
+        }
+        opened = self.client.post('/api/telemetry/ingest', json=fault, headers=self.headers)
+        self.assertEqual(opened.status_code, 201, opened.get_data(as_text=True))
+        active = json.loads(self.store.return_value.set.call_args.args[0]['incident_history'])
+        self.assertEqual(len(active), 1)
+        self.assertEqual(active[0]['candidate_link'], 'R1-R2')
+        self.assertEqual(active[0]['status'], 'ACTIVE')
+
+        incomplete = {
+            **self.data,
+            'collected_at': (baseline_time + timedelta(seconds=1)).isoformat(),
+            'routers': [
+                {**router, 'healthy_collection': False,
+                 'bgp': {**router['bgp'], 'success': False}}
+                if router['router'] == 'r1' else router
+                for router in self.data['routers']
+            ],
+        }
+        self.store.return_value.get.side_effect = None
+        active_record = Record({'incident_history': json.dumps(active).encode()})
+        self.store.return_value.get.side_effect = [active_record, active_record]
+        partial = self.client.post('/api/telemetry/ingest', json=incomplete, headers=self.headers)
+        self.assertEqual(partial.status_code, 201, partial.get_data(as_text=True))
+        partial_incidents = json.loads(self.store.return_value.set.call_args.args[0]['incident_history'])
+        self.assertEqual(partial_incidents[0]['status'], 'ACTIVE')
+
+        recovered_data = {**self.data, 'collected_at': (baseline_time + timedelta(seconds=2)).isoformat()}
+        recovered = self.client.post('/api/telemetry/ingest', json=recovered_data, headers=self.headers)
+        self.assertEqual(recovered.status_code, 201, recovered.get_data(as_text=True))
+        resolved = json.loads(self.store.return_value.set.call_args.args[0]['incident_history'])
+        self.assertEqual(resolved[0]['status'], 'RESOLVED')
+        self.assertIsNotNone(resolved[0]['resolved_at'])
+
+    def test_collector_probe_targets_match_ingest_topology(self):
+        topology = load_topology()
+        link = topology['links'][0]
+        routers_by_id = {
+            router['id']: {'container': router['container']}
+            for router in topology['routers']
+        }
+        ping_output = (
+            '10 packets transmitted, 10 packets received, 0% packet loss\n'
+            'rtt min/avg/max/mdev = 0.100/0.200/0.300/0.050 ms'
+        )
+        with patch('app.collector.measurements.run_command', return_value={'output': ping_output}):
+            measurement = probe_link(link, routers_by_id)
+
+        self.assertEqual(
+            [probe['target'] for probe in measurement['observations']],
+            [link['b'], link['a']],
+        )
+        payload = {
+            **self.data,
+            'topology': topology,
+            'measurements': [measurement],
+            'syslog_events': [],
+        }
+        response = self.client.post(
+            '/api/telemetry/ingest', json=payload, headers=self.headers,
+        )
+        self.assertEqual(response.status_code, 201, response.get_data(as_text=True))
 
     def test_stale_malformed_and_oversized_uploads_do_not_write(self):
         for value in ({},None,{**self.data,'collected_at':'2000-01-01T00:00:00Z'},{**self.data,'routers':[]}):
@@ -56,4 +142,4 @@ class IngestTests(unittest.TestCase):
         self.assertEqual(result.status_code,200)
         self.assertEqual(len(result.json['routers']),5)
         self.assertNotIn('bgp',result.json['routers'][0])
-        self.assertEqual(result.json['incidents_scope'],'not_collected_by_cloud_uploader')
+        self.assertEqual(result.json['incidents_scope'],'last_50_stored_records')

@@ -7,6 +7,12 @@ __pycache__/
 *.py[cod]
 .venv/
 venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
 
 # Node
 node_modules/
@@ -16,6 +22,11 @@ dist/
 .env
 .env.*
 !.env.example
+*.pem
+*.p12
+*.pfx
+*service-account*.json
+*firebase-adminsdk*.json
 
 # OS/editor
 .DS_Store
@@ -26,3 +37,14 @@ dist/
 
 # Local Firebase CLI state
 .firebase/
+
+# Collector output and mutable local incident state
+/data/telemetry_*.json
+/data/incident_history.json
+
+# Containerlab editor-generated layout metadata
+/lab/*.clab.yml.annotations.json
+
+# Presentation-only material; keep local, out of source history
+/Proposed-structure-hackathon.pdf
+/TEAM-ZNMD - Evidence-Based Network Fault Localisation.pdf

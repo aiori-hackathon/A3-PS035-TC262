@@ -3,6 +3,7 @@ import { Link } from "react-router";
 
 import {
   Network,
+  Activity,
   ArrowUpRight,
   ArrowRight,
   ShieldCheck,
@@ -81,7 +82,7 @@ function NetworkPreview({ scenario }) {
   const affected = scenario !== "healthy";
 
   return (
-    <div className="landing-network">
+    <div className="landing-network" data-scenario={scenario}>
       <div className="landing-network-top">
         <div className="landing-live-indicator">
           <span className="landing-pulse" />
@@ -112,14 +113,20 @@ function NetworkPreview({ scenario }) {
                 className={`landing-net-line ${state}`}
               />
 
+              <line
+                x1={x1}
+                y1={y1}
+                x2={x2}
+                y2={y2}
+                className={`landing-net-flow ${state}`}
+                aria-hidden="true"
+              />
+
               {state === "failed" && (
-                <circle
-                  cx={(x1 + x2) / 2}
-                  cy={(y1 + y2) / 2}
-                  r="10"
-                  fill="#ee795c"
-                  className="landing-fault-pulse"
-                />
+                <g className="landing-fault-marker">
+                  <circle cx={(x1 + x2) / 2} cy={(y1 + y2) / 2} r="12" />
+                  <path d={`M${(x1 + x2) / 2 - 4} ${(y1 + y2) / 2 - 4}l8 8m0-8-8 8`} />
+                </g>
               )}
             </g>
           );
@@ -131,7 +138,7 @@ function NetworkPreview({ scenario }) {
           return (
             <g
               key={name}
-              className="landing-net-node"
+              className={`landing-net-node ${isAffected ? "affected" : ""}`}
               transform={`translate(${x}, ${y})`}
             >
               <circle
@@ -186,6 +193,44 @@ function NetworkPreview({ scenario }) {
           Routing issue
         </span>
       </div>
+    </div>
+  );
+}
+
+function LiveMonitoringPreview() {
+  return (
+    <div className="landing-live-preview" aria-label="Illustration of NETSCOPE's read-only telemetry workflow">
+      <div className="landing-live-preview-head">
+        <span><RadioTower size={15} /> LIVE MONITORING / READ ONLY</span>
+        <span className="landing-live-preview-state"><i /> SNAPSHOT VIEW</span>
+      </div>
+
+      <div className="landing-live-flow" aria-label="Router lab, secure telemetry API, NETSCOPE evidence view">
+        <div className="landing-live-flow-step">
+          <span className="landing-live-flow-icon"><RadioTower size={23} /></span>
+          <strong>Router lab</strong>
+          <small>FRR devices</small>
+        </div>
+        <span className="landing-live-flow-link"><i /></span>
+        <div className="landing-live-flow-step is-api">
+          <span className="landing-live-flow-icon"><ShieldCheck size={23} /></span>
+          <strong>Secure API</strong>
+          <small>Authenticated</small>
+        </div>
+        <span className="landing-live-flow-link"><i /></span>
+        <div className="landing-live-flow-step is-console">
+          <span className="landing-live-flow-icon"><Radar size={23} /></span>
+          <strong>NETSCOPE</strong>
+          <small>Evidence view</small>
+        </div>
+      </div>
+
+      <div className="landing-live-preview-readings">
+        <div><small>ROUTER & LINK STATE</small><strong><i className="reading-ok" /> One connected topology</strong><span>Collection coverage and BGP peers</span></div>
+        <div><small>PROBES & TRENDS</small><strong><i className="reading-warm" /> Directional reachability</strong><span>RTT, packet loss, and saved history</span></div>
+        <div><small>DIAGNOSIS</small><strong><i className="reading-coral" /> Evidence-ranked hypotheses</strong><span>Signals, impact, and incident timeline</span></div>
+      </div>
+      <p className="landing-live-preview-note">Workflow illustration · values shown in Live Monitoring come from the latest stored snapshot.</p>
     </div>
   );
 }
@@ -247,6 +292,10 @@ export default function Landing() {
             Features
           </a>
 
+          <a href="#live-monitoring" onClick={closeMenu}>
+            Live monitoring
+          </a>
+
           <a href="#how-it-works" onClick={closeMenu}>
             How it works
           </a>
@@ -289,9 +338,10 @@ export default function Landing() {
             </h1>
 
             <p className="landing-hero-description">
-              When one network failure creates a flood of alarms, finding the
-              actual cause shouldn't feel like solving a mystery. Meet an
-              evidence-driven way to investigate network faults.
+              Follow authenticated router snapshots from network state to
+              evidence-ranked fault hypotheses. NETSCOPE brings topology,
+              reachability, telemetry trends, and guided investigation into one
+              read-only operations workspace.
             </p>
 
             <div className="landing-hero-actions">
@@ -308,7 +358,7 @@ export default function Landing() {
 
             <div className="landing-hero-note">
               <ShieldCheck size={18} />
-              Explore without an account · Simulated data
+              Read-only live monitoring · Simulated demo scenarios
             </div>
           </div>
 
@@ -385,7 +435,7 @@ export default function Landing() {
 
               <NetworkPreview scenario={scenarioId} />
 
-              <div className="landing-experience-results" key={scenarioId}>
+              <div className="landing-experience-results" key={scenarioId} aria-live="polite">
                 <div>
                   <small>FINDINGS</small>
                   <strong>{current.findings}</strong>
@@ -410,6 +460,25 @@ export default function Landing() {
               </p>
             </div>
           </div>
+        </section>
+
+        <section id="live-monitoring" className="landing-live-section landing-section">
+          <div className="landing-live-copy">
+            <div className="landing-eyebrow">LIVE OPERATIONS / AUTHENTICATED</div>
+            <h2>See what your routers report.<br /><span>Follow the evidence.</span></h2>
+            <p>Connect the lab collector and NETSCOPE presents its latest stored snapshot: which routers reported, how BGP peers and links look, what directional probes measured, and which observations support each fault hypothesis.</p>
+            <ul className="landing-live-points">
+              <li><ShieldCheck size={17} /><span><strong>Read-only by design</strong><small>Monitoring reads stored telemetry and never changes router state.</small></span></li>
+              <li><Activity size={17} /><span><strong>One connected picture</strong><small>Topology, router status, BGP, probes, trends, and incident history.</small></span></li>
+              <li><GitBranch size={17} /><span><strong>Evidence before conclusion</strong><small>Ranked hypotheses link back to the observations behind them.</small></span></li>
+            </ul>
+            <div className="landing-live-actions">
+              <Link to="/dashboard/live" className="landing-button primary">Open live monitoring <ArrowUpRight size={18} /></Link>
+              <Link to="/demo" className="landing-text-link">Preview the demo lab <ArrowRight size={17} /></Link>
+            </div>
+            <small className="landing-live-caveat">Live Monitoring requires an authenticated account and an available telemetry service. Displayed data is snapshot-based, not a continuous packet capture.</small>
+          </div>
+          <LiveMonitoringPreview />
         </section>
 
         {/* FEATURES */}
@@ -472,8 +541,8 @@ export default function Landing() {
             <Feature
               icon={RadioTower}
               number="06"
-              title="Real network foundation"
-              description="Built around a five-router FRRouting lab, with real telemetry integration planned for Live Mode."
+              title="Authenticated live monitoring"
+              description="Read connected lab snapshots with router and BGP state, directional probes, trends, and incident history—without controlling devices."
             />
           </div>
         </section>
@@ -547,8 +616,8 @@ export default function Landing() {
             </h2>
 
             <p>
-              Explore NETSCOPE's simulated network investigations or create an
-              account when personalized workspaces become available.
+              Explore prerecorded fault scenarios, or sign in to review
+              authenticated telemetry from the connected lab.
             </p>
 
             <div className="landing-hero-actions">
@@ -571,27 +640,23 @@ export default function Landing() {
       {/* FOOTER */}
 
       <footer className="landing-footer">
-        <div>
+        <div className="landing-footer-main">
           <div className="landing-footer-brand">
             <Network size={21} />
             <strong>NETSCOPE</strong>
           </div>
-
           <p>See beyond the alert.</p>
-          <small>AIORI-3 · PS-035</small>
+          <span>Evidence-led network intelligence for clearer incident response.</span>
         </div>
 
-        <div className="landing-footer-links">
-          <a href="#experience">Experience</a>
-          <a href="#features">Features</a>
-          <Link to="/demo">Demo</Link>
-          <Link to="/login">Login</Link>
-        </div>
+        <nav className="landing-footer-links" aria-label="Footer navigation">
+          <div><small>EXPLORE</small><a href="#experience">Experience</a><a href="#live-monitoring">Live monitoring</a><a href="#features">Features</a><Link to="/demo">Demo lab</Link></div>
+          <div><small>YOUR SPACE</small><Link to="/login">Log in</Link><Link to="/signup">Create account</Link></div>
+        </nav>
 
         <div className="landing-footer-bottom">
-          <span>Evidence-Based Operator Network Fault Localisation</span>
-
-          <span>Prototype · Simulated demonstrations</span>
+          <span>© {new Date().getFullYear()} NETSCOPE</span>
+          <span>Clearer signals. More confident response.</span>
         </div>
       </footer>
     </div>

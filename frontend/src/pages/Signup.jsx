@@ -1,11 +1,14 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 import { updateProfile } from "firebase/auth";
 import { useAuth } from "../contexts/authState";
+import { authDestination } from "../utils/authNavigation";
 
 export default function Signup() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { signup, loginWithGoogle } = useAuth();
+  const destination = authDestination(location.state?.from);
 
   const [form, setForm] = useState({
     name: "",
@@ -47,7 +50,7 @@ export default function Signup() {
         displayName: form.name.trim(),
       });
 
-      navigate("/dashboard", { replace: true });
+      navigate(destination, { replace: true });
     } catch (err) {
       console.error("Firebase Signup Error:", err.code, err.message);
 
@@ -71,7 +74,7 @@ export default function Signup() {
 
     try {
       await loginWithGoogle();
-      navigate("/dashboard", { replace: true });
+      navigate(destination, { replace: true });
     } catch (err) {
       if (err.code !== "auth/popup-closed-by-user") {
         setError("Google sign-in failed. Please try again.");
@@ -111,7 +114,7 @@ export default function Signup() {
             Continue with Google
           </button>
 
-          <p className="auth-progress" role="status">{loading ? "Creating your account…" : ""}</p>
+          <p className="auth-progress" role="status">{loading ? "Setting up your secure NETSCOPE profile…" : ""}</p>
 
           <div className="auth-divider">
             <span>or continue with email</span>
@@ -183,12 +186,12 @@ export default function Signup() {
               className="auth-submit-button"
               disabled={loading}
             >
-              {loading ? "Creating account..." : "Create account →"}
+              {loading ? "Creating your secure profile…" : "Create account →"}
             </button>
           </form>
 
           <p className="auth-switch">
-            Already have an account? <Link to="/login">Log in</Link>
+            Already have an account? <Link to="/login" state={location.state}>Log in</Link>
           </p>
         </div>
 

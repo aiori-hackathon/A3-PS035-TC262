@@ -8,7 +8,6 @@
     "status": "critical"
   },
   "telemetry": {
-    "project": "PS-035",
     "collected_at": "2026-10-24T10:00:15Z",
     "routers": [
       {

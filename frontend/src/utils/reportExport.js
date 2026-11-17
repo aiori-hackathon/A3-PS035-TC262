@@ -17,6 +17,13 @@ export function buildReportExport(record, selected = {}, exportedAt = new Date()
   if (selected.diagnosis) report.diagnosis = snapshot ? {
     findings: records(snapshot.diagnosis?.findings,['id','router','link','neighbor','type','severity','message']),
     suspected_causes: records(snapshot.diagnosis?.candidate_root_causes,['id','suspected_link','candidate_link','type','fault_type','severity','assessment','explanation','evidence','recommended_action']),
+    optional_model: snapshot.diagnosis?.optional_model ? {
+      status: scalar(snapshot.diagnosis.optional_model.status), reason: scalar(snapshot.diagnosis.optional_model.reason),
+      algorithm: scalar(snapshot.diagnosis.optional_model.algorithm), training_runs: scalar(snapshot.diagnosis.optional_model.training_runs),
+      score_semantics: scalar(snapshot.diagnosis.optional_model.score_semantics),
+      predictions: records(snapshot.diagnosis.optional_model.predictions,['candidate_link','relative_score']),
+      explanation: Array.isArray(snapshot.diagnosis.optional_model.explanation) ? snapshot.diagnosis.optional_model.explanation.filter(value=>typeof value==='string') : [],
+    } : null,
   } : null;
   if (selected.evidence) report.evidence = snapshot ? records(snapshot.evidence,['id','timestamp','source','router','link','target','type','severity','observation','message']) : null;
   if (selected.incidents) report.incidents = snapshot ? records(snapshot.incidents,['id','incident_id','title','status','severity','affected_link','candidate_link','detected_at','first_detected_at','last_observed_at','resolved_at','description','assessment']) : null;

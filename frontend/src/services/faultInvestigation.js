@@ -8,7 +8,7 @@ export function liveInvestigation(data) {
     telemetry: { collected_at: data.observed_at, routers: data.routers.map(router => ({ router: router.id, healthy_collection: router.collection_ok, status: router.status, findings_count: router.findings_count })) },
     topology: data.topology,
     diagnosis: data.diagnosis,
-    evidence: data.evidence.map(item => ({ ...item, source: 'stored_bgp_summary', timestamp: data.observed_at })),
+    evidence: data.evidence.map(item => ({ ...item, source: item.evidence_source || 'stored_telemetry', timestamp: data.observed_at })),
     incidents: data.incidents,
     provenance: { source: 'live', kind: data.provenance, observed_at: data.observed_at, served_at: data.served_at, freshness: data.freshness, incidents_total: data.incidents_total },
   };

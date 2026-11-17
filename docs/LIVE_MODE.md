@@ -2,7 +2,20 @@
 
 The protected `/dashboard/live` workspace reads stored observations through
 `GET /api/live/snapshot`. It never runs collection, injects faults, writes incident
-history, or saves reports automatically. Demo fixtures remain independent.
+history, or saves reports automatically. The authenticated operator uploader stores
+each snapshot and updates its incident lifecycle on the backend. Demo fixtures remain
+independent.
+
+The Live Monitoring workspace summarizes collection and incident counts and renders
+the latest stored topology for router-level triage. Selecting a router filters its
+related observations; demo scenarios remain a separate, prerecorded workflow. Status
+colors and counts come from the fetched snapshot, whose observation timestamp and
+freshness are shown separately from API response time.
+
+Stored directional probe history can be viewed over the newest 30 minutes, 60 minutes,
+or two hours and filtered to one topology link. RTT and loss summaries use only
+available measurements in that selected window; missing samples remain gaps. The
+window is anchored to the newest stored observation, not the browser's current time.
 
 ## Configuration
 
@@ -17,6 +30,7 @@ an isolated environment. Export the following in the backend service environment
 | `NETSCOPE_LIVE_UIDS` | Comma-separated Firebase UIDs authorized to view this network; empty denies everyone |
 | `NETSCOPE_ALLOWED_ORIGINS` | Exact frontend origins, including scheme and port; no wildcard |
 | `NETSCOPE_TELEMETRY_DIR` | Absolute operator-owned directory with `telemetry_*.json` and optional `incident_history.json` |
+| `NETSCOPE_DIAGNOSIS_MODEL` | Optional path to a locally trained experimental model JSON; omit to use only the rule baseline |
 | `NETSCOPE_ENABLE_ADMIN_REFRESH` | Leave unset/false; privileged collection disabled by default |
 | `NETSCOPE_ADMIN_UIDS` | Additional admin allowlist if explicitly enabling local administration |
 
@@ -50,16 +64,30 @@ request carrying Origin. Do not expose this route through public ingress.
 
 ## Data semantics and failures
 
-The newest lexically named telemetry file is read, with a 2 MB limit per file.
-The existing collector's timestamp filenames satisfy this ordering. Missing files
-return 404; invalid/unreadable/configuration failures return 503. Store snapshots
-atomically to avoid transient partial-file errors. Incident history is read only,
-with the last 50 records returned; its observation time may differ from telemetry.
+In local-directory mode, the newest lexically named telemetry file is read, with a
+2 MB limit per file. The existing collector's timestamp filenames satisfy this
+ordering. In Firestore mode, the latest bounded snapshot and incident history share
+one private server-only document. Each accepted upload updates incident state from
+its diagnosis; incomplete router collection leaves active incidents unchanged, and
+a complete snapshot without a candidate resolves them. A compact trend ring keeps
+the newest 120 samples (about two hours at one upload per minute) with compact
+direction-specific probe count, RTT and packet loss; it is stored alongside the latest
+snapshot and incident history. Local-directory mode builds that view from the newest
+snapshot files. The response prioritizes all active incidents and fills the remaining slots
+with the most recently closed records, up to 50 total. Timestamps describe observation
+time and may differ from API response time.
 
 Responses distinguish observation time from API response time. Older than three
 minutes is stale; unknown/future timestamps do not imply fresh data. Router
 collection success and BGP hypotheses are separate from physical link state,
 which remains unmeasured. Reachable API does not mean healthy/running lab.
+
+The optional diagnosis model uses the standard library and has no active effect unless
+`NETSCOPE_DIAGNOSIS_MODEL` points to a valid model file. Train it from labeled
+non-held-out lab runs with `tools/train_optional_model.py`; its predictions are shown
+as a comparison only, relative scores are not probabilities, and held-out runs must
+remain separate for `tools/evaluate_runs.py --model`. The rule-based diagnosis stays
+available if the model is missing or invalid.
 
 Manual refresh reads storage only. Optional polling runs every 30 seconds while
 visible, with no overlapping requests, a ten-second client timeout, and cleanup

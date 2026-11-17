@@ -1,10 +1,13 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 import { useAuth } from "../contexts/authState";
+import { authDestination } from "../utils/authNavigation";
 
 export default function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login, loginWithGoogle } = useAuth();
+  const destination = authDestination(location.state?.from);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -18,7 +21,7 @@ export default function Login() {
 
     try {
       await login(email.trim(), password);
-      navigate("/dashboard", { replace: true });
+      navigate(destination, { replace: true });
     } catch (err) {
       if (err.code === "auth/invalid-credential") {
         setError("Incorrect email or password.");
@@ -38,7 +41,7 @@ export default function Login() {
 
     try {
       await loginWithGoogle();
-      navigate("/dashboard", { replace: true });
+      navigate(destination, { replace: true });
     } catch (err) {
       if (err.code !== "auth/popup-closed-by-user") {
         setError("Google sign-in failed. Please try again.");
@@ -78,7 +81,7 @@ export default function Login() {
             Continue with Google
           </button>
 
-          <p className="auth-progress" role="status">{loading ? "Signing you in…" : ""}</p>
+          <p className="auth-progress" role="status">{loading ? "Verifying your details and opening your workspace…" : ""}</p>
 
           <div className="auth-divider">
             <span>or continue with email</span>
@@ -120,13 +123,13 @@ export default function Login() {
               className="auth-submit-button"
               disabled={loading}
             >
-              {loading ? "Logging in..." : "Log in →"}
+              {loading ? "Entering your workspace…" : "Log in →"}
             </button>
           </form>
 
-          <p><Link to="/reset-password">Forgot your password?</Link></p>
+          <p><Link to="/reset-password" state={location.state}>Forgot your password?</Link></p>
           <p className="auth-switch">
-            New to NETSCOPE? <Link to="/signup">Create an account</Link>
+            New to NETSCOPE? <Link to="/signup" state={location.state}>Create an account</Link>
           </p>
         </div>
 
