@@ -422,7 +422,7 @@
 .landing-net-line {
   stroke-width: 3.5;
   stroke-linecap: round;
-  transition: stroke .4s ease;
+  transition: stroke .45s ease, opacity .3s ease, stroke-width .35s ease;
 }
 
 .landing-net-line.healthy {
@@ -441,9 +441,49 @@
   animation: landing-dash 2s linear infinite;
 }
 
+.landing-net-flow { fill: none; stroke-linecap: round; stroke-width: 3; pointer-events: none; }
+.landing-net-flow.healthy { stroke: #c0e7be; stroke-dasharray: 1 19; animation: landing-dash 1.5s linear infinite; filter: drop-shadow(0 0 3px #b7e5b877); }
+.landing-net-flow.degraded { stroke: #f3d18a; stroke-dasharray: 1 20; animation: landing-dash 2.8s linear infinite; filter: drop-shadow(0 0 3px #f0c77766); }
+.landing-net-flow.failed { opacity: 0; }
+.landing-fault-marker circle { fill: #ee795c; stroke: #ffd0b4; stroke-width: 2; transform-box: fill-box; transform-origin: center; animation: landing-fault-pop 1.8s ease-in-out infinite; }
+.landing-fault-marker path { fill: none; stroke: #fff5e9; stroke-width: 2.5; stroke-linecap: round; }
+
 .landing-net-node {
-  transition: opacity .3s ease;
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: opacity .3s ease, filter .3s ease;
 }
+.landing-net-node > circle:first-child { transform-box: fill-box; transform-origin: center; animation: landing-node-breathe 3.6s ease-in-out infinite; }
+.landing-net-node:nth-of-type(2) > circle:first-child { animation-delay: .5s; }
+.landing-net-node:nth-of-type(3) > circle:first-child { animation-delay: 1s; }
+.landing-net-node:nth-of-type(4) > circle:first-child { animation-delay: 1.5s; }
+.landing-net-node:nth-of-type(5) > circle:first-child { animation-delay: 2s; }
+.landing-net-node.affected { filter: drop-shadow(0 0 9px #ed987855); }
+.landing-net-node.affected > circle:first-child { animation: landing-node-alert 1.1s ease-in-out infinite; }
+.landing-network[data-scenario="healthy"] .landing-net-node.affected { filter: none; }
+.landing-network[data-scenario="healthy"] .landing-net-node.affected > circle:first-child { animation: none; }
+
+@keyframes landing-node-breathe { 0%,100% { opacity: 1; } 50% { opacity: .84; } }
+@keyframes landing-node-alert { 0%,100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+@keyframes landing-fault-pop { 0%,100% { transform: scale(.82); opacity: .75; } 50% { transform: scale(1.15); opacity: 1; } }
+
+.landing-scenario-button {
+  position: relative;
+  overflow: hidden;
+}
+.landing-scenario-button::before {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: var(--landing-coral);
+  content: "";
+  transform: scaleY(0);
+  transform-origin: center;
+  transition: transform .25s ease;
+}
+.landing-scenario-button.active::before { transform: scaleY(1); }
+.landing-scenario-button.active .landing-scenario-number { animation: landing-number-pop .35s ease both; }
+@keyframes landing-number-pop { 0% { transform: scale(.78); } 65% { transform: scale(1.14); } 100% { transform: scale(1); } }
 
 .landing-network-bottom {
   border-top: 1px solid #ffffff22;
@@ -690,6 +730,11 @@
   margin-top: 18px;
   animation: landing-rise .35s ease both;
 }
+
+.landing-experience-results > div { animation: landing-result-in .38s cubic-bezier(.2,.75,.25,1) both; }
+.landing-experience-results > div:nth-child(2) { animation-delay: .06s; }
+.landing-experience-results > div:nth-child(3) { animation-delay: .12s; }
+@keyframes landing-result-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
 .landing-experience-results > div {
   padding: 18px;

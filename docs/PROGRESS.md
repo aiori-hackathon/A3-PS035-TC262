@@ -916,3 +916,13 @@ Phase F was committed and pushed as `bf27cfb` before this work.
 - `npm run lint`: PASS. `npm run build`: PASS (2,568 modules). `git diff --check`:
   PASS. Browser capture is unavailable in this session, so responsive visual review
   remains unverified.
+
+## Interactive scenario animation pass — 17 November 2026
+- Animated signal traces now move across operational and degraded links; a physical
+  break gets a pulsing marker and affected routers draw attention when the selected
+  scenario changes.
+- Scenario selection and the findings/assessment cards now use short, clear motion
+  cues. Existing reduced-motion behavior disables these animations.
+- `npm run lint`: PASS. `npm run build`: PASS (2,568 modules). `git diff --check`:
+  PASS. Browser preview is unavailable in this session, so visual timing has not been
+  inspected live.

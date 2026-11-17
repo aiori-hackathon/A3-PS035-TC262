@@ -82,7 +82,7 @@ function NetworkPreview({ scenario }) {
   const affected = scenario !== "healthy";
 
   return (
-    <div className="landing-network">
+    <div className="landing-network" data-scenario={scenario}>
       <div className="landing-network-top">
         <div className="landing-live-indicator">
           <span className="landing-pulse" />
@@ -113,14 +113,20 @@ function NetworkPreview({ scenario }) {
                 className={`landing-net-line ${state}`}
               />
 
+              <line
+                x1={x1}
+                y1={y1}
+                x2={x2}
+                y2={y2}
+                className={`landing-net-flow ${state}`}
+                aria-hidden="true"
+              />
+
               {state === "failed" && (
-                <circle
-                  cx={(x1 + x2) / 2}
-                  cy={(y1 + y2) / 2}
-                  r="10"
-                  fill="#ee795c"
-                  className="landing-fault-pulse"
-                />
+                <g className="landing-fault-marker">
+                  <circle cx={(x1 + x2) / 2} cy={(y1 + y2) / 2} r="12" />
+                  <path d={`M${(x1 + x2) / 2 - 4} ${(y1 + y2) / 2 - 4}l8 8m0-8-8 8`} />
+                </g>
               )}
             </g>
           );
@@ -132,7 +138,7 @@ function NetworkPreview({ scenario }) {
           return (
             <g
               key={name}
-              className="landing-net-node"
+              className={`landing-net-node ${isAffected ? "affected" : ""}`}
               transform={`translate(${x}, ${y})`}
             >
               <circle
@@ -429,7 +435,7 @@ export default function Landing() {
 
               <NetworkPreview scenario={scenarioId} />
 
-              <div className="landing-experience-results" key={scenarioId}>
+              <div className="landing-experience-results" key={scenarioId} aria-live="polite">
                 <div>
                   <small>FINDINGS</small>
                   <strong>{current.findings}</strong>
