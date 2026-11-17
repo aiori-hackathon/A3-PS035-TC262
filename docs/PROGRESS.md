@@ -902,3 +902,17 @@ Phase F was committed and pushed as `bf27cfb` before this work.
   and Your Space links, a concise product message, and a simple NETSCOPE copyright row.
 - `npm run lint`: PASS. `npm run build`: PASS (2,568 modules). `git diff --check`:
   PASS. Internal lab identifiers and safety notes remain in operator documentation.
+
+## Landing page live-operations story — 17 November 2026
+- Updated the landing hero to explain authenticated router snapshots and the
+  read-only operations workspace, while keeping the interactive demo clearly
+  identified as simulated.
+- Added a dedicated Live Monitoring section describing collection coverage, BGP
+  and link state, directional probes, trends, incident history, and evidence-ranked
+  hypotheses. A labeled workflow illustration uses animated data pulses without
+  presenting sample values as real telemetry.
+- Corrected the stale capability copy that said live integration was only planned;
+  the page now links directly to authenticated Live Monitoring and the demo lab.
+- `npm run lint`: PASS. `npm run build`: PASS (2,568 modules). `git diff --check`:
+  PASS. Browser capture is unavailable in this session, so responsive visual review
+  remains unverified.
