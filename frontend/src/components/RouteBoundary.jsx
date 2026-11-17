@@ -1,4 +1,4 @@
-import { Component, Suspense } from "react";
+import { Component, Suspense, useLayoutEffect, useRef, useState } from "react";
 import { useLocation } from "react-router";
 import LoadingExperience from "./LoadingExperience";
 
@@ -33,6 +33,28 @@ class PageErrorBoundary extends Component {
 
 export default function RouteBoundary({ children }) {
   const { pathname } = useLocation();
+  const previousPath = useRef(pathname);
+  const [showTransition, setShowTransition] = useState(false);
+
+  useLayoutEffect(() => {
+    if (previousPath.current === pathname) return undefined;
+
+    previousPath.current = pathname;
+    setShowTransition(true);
+    const timer = window.setTimeout(() => setShowTransition(false), 2200);
+    return () => window.clearTimeout(timer);
+  }, [pathname]);
+
+  if (showTransition) {
+    return (
+      <main className="netscope-loading-page">
+        <LoadingExperience
+          title="Bringing your workspace into focus"
+          message="Syncing the evidence and tools for your next view."
+        />
+      </main>
+    );
+  }
 
   return (
     <PageErrorBoundary key={pathname}>

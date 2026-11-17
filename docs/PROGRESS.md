@@ -886,3 +886,9 @@ Phase F was committed and pushed as `bf27cfb` before this work.
   announcements identify the task rather than repeating a generic “Loading” label.
 - `npm run lint`: PASS. `npm run build`: PASS (2,568 modules). `git diff --check`:
   PASS. Browser-based visual verification has not been performed yet.
+
+## Route transition timing — 17 November 2026
+- Kept the animated full-page transition visible for 2.2 seconds after in-app route
+  changes so the signal-sync visual has time to register instead of flashing by.
+  Inline data refreshes remain immediate and are not held back.
+- Lint, build, and diff checks pending.
