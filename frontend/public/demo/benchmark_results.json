@@ -1,0 +1,143 @@
+{
+  "held_out_records": 6,
+  "labeled_records": 6,
+  "independent_runs": 6,
+  "fault_cases": 5,
+  "unsupported_cases": 1,
+  "top1_accuracy": 1.0,
+  "top3_accuracy": 1.0,
+  "mrr": 1.0,
+  "mean_reciprocal_rank": 1.0,
+  "selective_accuracy": 1.0,
+  "abstention_coverage": 0.8333,
+  "abstention_rate": 0.1667,
+  "false_confident_diagnosis_rate": 0.0,
+  "unsupported_conclusion_rate": 0.0,
+  "unsupported_abstention_accuracy": 1.0,
+  "fault_case_abstention_rate": 0.0,
+  "per_class_metrics": {
+    "NO_FAULT": {
+      "support": 1,
+      "true_positives": 0,
+      "false_positives": 0,
+      "false_negatives": 1,
+      "precision": null,
+      "recall": 0.0
+    },
+    "R1-R2": {
+      "support": 1,
+      "true_positives": 1,
+      "false_positives": 0,
+      "false_negatives": 0,
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "R2-R4": {
+      "support": 2,
+      "true_positives": 2,
+      "false_positives": 0,
+      "false_negatives": 0,
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "R3-R4": {
+      "support": 1,
+      "true_positives": 1,
+      "false_positives": 0,
+      "false_negatives": 0,
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "R4-R5": {
+      "support": 1,
+      "true_positives": 1,
+      "false_positives": 0,
+      "false_negatives": 0,
+      "precision": 1.0,
+      "recall": 1.0
+    }
+  },
+  "confusion_matrix": {
+    "NO_FAULT": {
+      "ABSTAIN": 1
+    },
+    "R2-R4": {
+      "R2-R4": 2
+    },
+    "R1-R2": {
+      "R1-R2": 1
+    },
+    "R4-R5": {
+      "R4-R5": 1
+    },
+    "R3-R4": {
+      "R3-R4": 1
+    },
+    "ABSTAIN": {}
+  },
+  "per_scenario_results": {
+    "bgp_r1_r2_shutdown": {
+      "total_runs": 1,
+      "top1_matches": 1,
+      "abstentions": 0,
+      "accuracy": 1.0
+    },
+    "degraded_r2_r4": {
+      "total_runs": 1,
+      "top1_matches": 1,
+      "abstentions": 0,
+      "accuracy": 1.0
+    },
+    "healthy_baseline": {
+      "total_runs": 1,
+      "top1_matches": 0,
+      "abstentions": 1,
+      "accuracy": 0.0
+    },
+    "link_r2_r4_down": {
+      "total_runs": 1,
+      "top1_matches": 1,
+      "abstentions": 0,
+      "accuracy": 1.0
+    },
+    "link_r3_r4_down": {
+      "total_runs": 1,
+      "top1_matches": 1,
+      "abstentions": 0,
+      "accuracy": 1.0
+    },
+    "route_r5_withdrawal": {
+      "total_runs": 1,
+      "top1_matches": 1,
+      "abstentions": 0,
+      "accuracy": 1.0
+    }
+  },
+  "multi_fault_evaluation": null,
+  "dataset_split_details": {
+    "total_records": 6,
+    "held_out_records": 6,
+    "training_records": 0,
+    "independent_held_out_runs": 6,
+    "run_counts_per_scenario": {
+      "healthy_baseline": 1,
+      "link_r2_r4_down": 1,
+      "bgp_r1_r2_shutdown": 1,
+      "route_r5_withdrawal": 1,
+      "degraded_r2_r4": 1,
+      "link_r3_r4_down": 1
+    },
+    "limitation_disclosure": "Evaluated only on held-out records. No synthetic samples manufactured."
+  },
+  "metric_definitions": {
+    "top1_accuracy": "Fraction of fault cases where the top-ranked candidate link matches the ground truth label.",
+    "top3_accuracy": "Fraction of fault cases where the ground truth label appears within the top 3 ranked candidates.",
+    "mean_reciprocal_rank": "Mean of the reciprocal ranks (1/rank) of the ground truth label across all fault cases (0 if not in ranked candidates).",
+    "selective_accuracy": "Accuracy evaluated strictly on runs where the engine issued a confident diagnosis without abstaining.",
+    "abstention_coverage": "Fraction of evaluated runs where the engine issued a diagnosis rather than abstaining.",
+    "false_confident_diagnosis_rate": "Fraction of non-abstained diagnoses where the top-ranked prediction was incorrect.",
+    "unsupported_abstention_accuracy": "Fraction of healthy / unsupported runs where the engine correctly abstained.",
+    "unsupported_conclusion_rate": "Fraction of healthy / unsupported runs where the engine falsely issued a fault conclusion."
+  },
+  "note": "Metrics are calculated only from supplied held-out labels; this tool does not establish dataset quality or generalize beyond it."
+}

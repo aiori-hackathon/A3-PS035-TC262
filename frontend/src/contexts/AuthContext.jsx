@@ -20,37 +20,66 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(
-      auth,
-      (user) => {
-        setCurrentUser(user);
-        setLoading(false);
-      },
-      (error) => {
-        console.error("Authentication state error:", error);
+    let unsubscribe = () => {};
+    try {
+      if (auth && typeof onAuthStateChanged === "function") {
+        unsubscribe = onAuthStateChanged(
+          auth,
+          (user) => {
+            setCurrentUser(user);
+            setLoading(false);
+          },
+          (error) => {
+            console.error("Authentication state error:", error);
+            setCurrentUser(null);
+            setLoading(false);
+          },
+        );
+      } else {
         setCurrentUser(null);
         setLoading(false);
-      },
-    );
+      }
+    } catch (e) {
+      console.warn("Unable to attach auth state listener:", e);
+      setCurrentUser(null);
+      setLoading(false);
+    }
 
-    return unsubscribe;
+    return () => {
+      if (typeof unsubscribe === "function") {
+        unsubscribe();
+      }
+    };
   }, []);
 
   async function signup(email, password) {
+    if (!auth) {
+      throw new Error("Authentication is not configured in offline/demo mode.");
+    }
     return createUserWithEmailAndPassword(auth, email, password);
   }
 
   async function login(email, password) {
+    if (!auth) {
+      throw new Error("Authentication is not configured in offline/demo mode.");
+    }
     return signInWithEmailAndPassword(auth, email, password);
   }
 
   async function loginWithGoogle() {
+    if (!auth) {
+      throw new Error("Google authentication is not configured in offline/demo mode.");
+    }
     const provider = new GoogleAuthProvider();
 
     return signInWithPopup(auth, provider);
   }
 
   async function logout() {
+    if (!auth) {
+      setCurrentUser(null);
+      return;
+    }
     return signOut(auth);
   }
 
