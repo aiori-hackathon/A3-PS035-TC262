@@ -1,13 +1,5 @@
 import { useState } from "react";
 import {
-  Activity,
-  AlertTriangle,
-  ArrowRight,
-  CheckCircle2,
-  Clock3,
-  Cpu,
-  Layers,
-  Router,
   Terminal,
   Zap,
 } from "lucide-react";

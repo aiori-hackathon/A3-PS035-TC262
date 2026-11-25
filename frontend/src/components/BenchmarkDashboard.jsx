@@ -1,9 +1,7 @@
 import { useEffect, useState } from "react";
 import {
-  Activity,
   AlertTriangle,
   BarChart3,
-  CheckCircle2,
   Database,
   Info,
   RefreshCw,
@@ -19,8 +17,6 @@ export default function BenchmarkDashboard({ url = "/demo/benchmark_results.json
 
   useEffect(() => {
     let active = true;
-    setLoading(true);
-    setError("");
 
     fetch(url, { cache: "no-store" })
       .then((res) => {
@@ -30,6 +26,7 @@ export default function BenchmarkDashboard({ url = "/demo/benchmark_results.json
       .then((json) => {
         if (active) {
           setData(json);
+          setError("");
           setLoading(false);
         }
       })

@@ -17,32 +17,33 @@ import { AuthContext } from "./authState";
 export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [profileRevision, setProfileRevision] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => Boolean(auth && typeof onAuthStateChanged === "function"));
 
   useEffect(() => {
+    if (!auth || typeof onAuthStateChanged !== "function") {
+      return undefined;
+    }
+
     let unsubscribe = () => {};
     try {
-      if (auth && typeof onAuthStateChanged === "function") {
-        unsubscribe = onAuthStateChanged(
-          auth,
-          (user) => {
-            setCurrentUser(user);
-            setLoading(false);
-          },
-          (error) => {
-            console.error("Authentication state error:", error);
-            setCurrentUser(null);
-            setLoading(false);
-          },
-        );
-      } else {
-        setCurrentUser(null);
-        setLoading(false);
-      }
+      unsubscribe = onAuthStateChanged(
+        auth,
+        (user) => {
+          setCurrentUser(user);
+          setLoading(false);
+        },
+        (error) => {
+          console.error("Authentication state error:", error);
+          setCurrentUser(null);
+          setLoading(false);
+        },
+      );
     } catch (e) {
       console.warn("Unable to attach auth state listener:", e);
-      setCurrentUser(null);
-      setLoading(false);
+      queueMicrotask(() => {
+        setCurrentUser(null);
+        setLoading(false);
+      });
     }
 
     return () => {
