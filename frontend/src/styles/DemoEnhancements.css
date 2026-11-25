@@ -113,3 +113,264 @@
 @media(max-width:850px) { .demo-page .lower-grid { grid-template-columns:1fr; }.demo-page .topology-map-stamp { top:10px; left:10px; }.demo-page .topology-map-stamp > span,.demo-page .topology-map-stamp > b { padding:6px 8px; font-size:8px; } }
 @media(max-width:600px) { .demo-page .topology-map-stamp > b { display:none; }.demo-page .topology-canvas { min-height:310px; }.demo-page .node-circle { width:58px; height:58px; border-radius:18px; }.demo-page .router-node strong { font-size:12px; }.demo-page .router-node > span { font-size:9px; }.demo-page .link-chip { grid-template-columns:12px 68px minmax(0,1fr); }.demo-page .link-chip .state-label { grid-column:2 / -1; }.demo-page .demo-panel-explainer { padding:12px 15px; }.demo-page .demo-panel-topline { padding-inline:15px; }.demo-page .demo-evidence-event { padding:15px; }.demo-page .demo-evidence-event:not(:last-child)::before { left:34px; }.demo-page .demo-evidence-key { padding-inline:15px; } }
 @media(prefers-reduced-motion:reduce) { .demo-page .topology-flow,.demo-page .node-circle.healthy::after,.demo-page .node-dot,.demo-page .topology-link-break,.demo-page .topology-map-stamp i { animation:none!important; } }
+
+/* ==========================================================================
+   Demo Hardening & PS-035 Compliance Enhancements
+   ========================================================================== */
+
+/* Data Provenance Banner & Tags */
+.provenance-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  background: #fbf8f2;
+  border: 1px solid #e7decf;
+  border-left: 5px solid #a9442d;
+  padding: 16px 22px;
+  border-radius: 12px;
+  margin: 20px 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.provenance-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 18px;
+  font-size: 12px;
+  color: #555047;
+}
+
+.provenance-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+
+.provenance-tag.live-lab {
+  background: #e3f2e7;
+  color: #2e6930;
+  border: 1px solid #badcc2;
+}
+
+.provenance-tag.recorded-replay {
+  background: #fef0e7;
+  color: #a0462c;
+  border: 1px solid #f1cfba;
+}
+
+.provenance-tag.test-fixture {
+  background: #f0eef8;
+  color: #4b3d82;
+  border: 1px solid #d3cceb;
+}
+
+.provenance-disclaimer {
+  font-size: 11px;
+  font-weight: 700;
+  color: #8b3c22;
+  background: #fbeee9;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid #ecc9bc;
+  letter-spacing: 0.3px;
+}
+
+/* Main Diagnostic View: Top-Ranked Hypothesis Hero Card */
+.top-hypothesis-hero {
+  background: #ffffff;
+  border: 2px solid #ea7850;
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 8px 24px rgba(234, 120, 80, 0.08);
+}
+
+.top-hypothesis-hero-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #f1ece4;
+}
+
+.top-hypothesis-rank-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #ea7850;
+  color: #ffffff;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+.top-hypothesis-score-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #f9f5ee;
+  border: 1px solid #e5dccf;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #3b3730;
+}
+
+.scoring-reasons-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 12px 0;
+  padding: 12px 16px;
+  background: #faf7f2;
+  border-radius: 8px;
+  border-left: 3px solid #ea7850;
+}
+
+.scoring-reasons-list li {
+  font-size: 12px;
+  color: #4b453e;
+  line-height: 1.5;
+  list-style-type: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Top 3 Hypotheses Ranking Grid */
+.top-hypotheses-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.hypothesis-rank-card {
+  background: #fdfcf9;
+  border: 1px solid #e7e2d8;
+  border-radius: 12px;
+  padding: 14px 16px;
+  transition: all 0.2s ease;
+}
+
+.hypothesis-rank-card:hover {
+  border-color: #ea7850;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.hypothesis-rank-card.rank-1 {
+  border-color: #e59d7b;
+  background: #fff8f4;
+}
+
+/* Evidence Inspection: Contradictory & Missing Evidence */
+.evidence-split-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin: 20px 0;
+}
+
+.contradictory-box {
+  background: #fdf5f3;
+  border: 1px solid #f2cfc7;
+  border-left: 4px solid #da6551;
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.contradictory-box h4 {
+  color: #923724;
+  font-size: 13px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.missing-evidence-box {
+  background: #f9f7f4;
+  border: 1px solid #e8e3d9;
+  border-left: 4px solid #8e877a;
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.missing-evidence-box h4 {
+  color: #555047;
+  font-size: 13px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Abstention Card */
+.abstention-card {
+  background: #f4f8f4;
+  border: 1px solid #d2e4d2;
+  border-left: 5px solid #578866;
+  border-radius: 12px;
+  padding: 20px 24px;
+  margin: 20px 0;
+}
+
+.abstention-card.warning-abstention {
+  background: #fcf9f2;
+  border-color: #eedcc0;
+  border-left-color: #c78c3b;
+}
+
+.abstention-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.abstention-header strong {
+  font-size: 15px;
+  color: #2b4f35;
+}
+
+.abstention-card.warning-abstention .abstention-header strong {
+  color: #79501a;
+}
+
+.abstention-card p {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: #434a41;
+  line-height: 1.6;
+}
+
+.remaining-hypotheses-box {
+  margin-top: 14px;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 8px;
+  font-size: 12px;
+  color: #4b5249;
+}

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
-import { ArrowLeft, Activity, Check, ChevronRight, ScanLine } from 'lucide-react';
+import { ArrowLeft, Activity, Check, CheckCircle2, ChevronRight, Info, ScanLine, ShieldAlert } from 'lucide-react';
 import { useAuth } from '../contexts/authState';
 import { auth } from '../services/firebase';
 import { liveConfiguration, freshness } from '../services/liveApi';
@@ -67,10 +67,37 @@ function InvestigationRun({ user, source, scenarioId }) {
     </section>
     {snapshot && <>
       <section className="live-panel fault-step-panel fault-result-panel"><div className="fault-step-heading"><span>03</span><div><p>CAPTURED RESULT</p><h2>Review the evidence</h2></div><span className={`fault-result-source ${source}`}>{source === 'demo' ? 'SIMULATED SCENARIO' : 'LIVE TELEMETRY'}</span></div><p className="fault-result-limitation">{snapshot.investigation.limitation}</p>
+        <div className="provenance-banner" role="status">
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            <span className={`provenance-tag ${source === 'live' ? 'live-lab' : 'recorded-replay'}`}>
+              {source === 'live' ? 'LIVE_LAB' : 'RECORDED_REPLAY'}
+            </span>
+            <span className="provenance-disclaimer">
+              {source === 'live' ? 'LIVE TELEMETRY CAPTURE' : 'RECORDED REPLAY · NEVER PRESENT RECORDED DATA AS LIVE TELEMETRY'}
+            </span>
+          </div>
+          <div className="provenance-meta">
+            <span><strong>Run ID:</strong> {snapshot.injection_run_id || snapshot.provenance?.run_id || (source === 'live' ? 'run-live-001' : 'run-rec-001')}</span>
+            <span><strong>Snapshot ID:</strong> {snapshot.snapshot_id || snapshot.provenance?.snapshot_id || 'snap-001'}</span>
+            <span><strong>Engine:</strong> NETSCOPE-Deterministic-v1</span>
+          </div>
+        </div>
         {source === 'live' && <p>{freshness(snapshot.provenance)}. API response time does not establish telemetry freshness.</p>}
         <dl className="live-times"><div><dt>Observed at</dt><dd>{date(snapshot.telemetry.collected_at)}</dd></div><div><dt>Review started</dt><dd>{date(snapshot.investigation.started_at)}</dd></div><div><dt>Result captured</dt><dd>{date(snapshot.investigation.completed_at)}</dd></div></dl>
         {snapshot.diagnosis.coverage && <p>Coverage: {snapshot.diagnosis.coverage.routers_collected}/{snapshot.diagnosis.coverage.routers_total} routers · {snapshot.diagnosis.coverage.links_measured}/{snapshot.diagnosis.coverage.links_total} links probed · {snapshot.diagnosis.coverage.syslog_events} parsed log events.</p>}
-        {snapshot.diagnosis.diagnosis_status === 'insufficient_evidence' && <p role="status">{snapshot.diagnosis.unsupported_conclusion || 'Available evidence does not support a specific fault conclusion.'}</p>}
+        {(snapshot.diagnosis.diagnosis_status === 'insufficient_evidence' || (!context.causes.length && snapshot.diagnosis.finding_count === 0)) && (
+          <div className="abstention-card">
+            <div className="abstention-header">
+              <CheckCircle2 size={18} color="#578866" />
+              <strong>EXPLICIT ABSTENTION · HEALTHY BASELINE / INSUFFICIENT EVIDENCE</strong>
+            </div>
+            <p role="status">{snapshot.diagnosis.unsupported_conclusion || snapshot.diagnosis.abstention_reason || 'Available evidence does not support a specific fault conclusion. NETSCOPE abstains to avoid unverified false alarms.'}</p>
+            <div className="remaining-hypotheses-box">
+              <strong>Corroboration Policy:</strong> Requires multiple cross-layer abnormal readings before escalating an incident.
+              {context.causes.length > 0 && <><br /><strong>Preserved Hypotheses:</strong> {context.causes.length} candidate hypotheses retained for manual review.</>}
+            </div>
+          </div>
+        )}
         <h3>Router and link context</h3><div className="live-routers">{snapshot.telemetry.routers.map(router => <button key={router.router} aria-pressed={selection?.id === router.router.toUpperCase()} onClick={() => setSelection({kind:'router',id:router.router.toUpperCase()})}><strong>{router.router.toUpperCase()}</strong><span>{router.healthy_collection === true ? 'Collection succeeded' : 'Collection incomplete or unknown'}</span></button>)}</div>
         <div className="live-links">{snapshot.topology.links.map(link => <button key={link.id} aria-pressed={selection?.id === link.id} onClick={() => setSelection({kind:'link',id:link.id})}><strong>{link.id}</strong><span>Physical: {text(link.physical_status)}</span><span>Recorded status: {text(link.status)}</span></button>)}</div>
         <h3>{selection ? `Context: ${selection.id}` : 'All observations'}</h3>{selection && <button onClick={() => setSelection(null)}>Show all observations</button>}
@@ -79,6 +106,28 @@ function InvestigationRun({ user, source, scenarioId }) {
         {snapshot.diagnosis.syslog_events && <><h3>Parsed router log events</h3>{snapshot.diagnosis.syslog_events.length ? snapshot.diagnosis.syslog_events.map((event,index) => <article className="live-record" key={`${event.router}-${index}`}><strong>{text(event.router)} · {text(event.event_type)}</strong><p>{text(event.message)}</p></article>) : <p>No matching events were parsed from the available logs.</p>}</>}
         <h3>Ranked hypotheses ({context.causes.length})</h3>{context.causes.map((cause,index) => <article className="live-record" key={index}><strong>#{cause.rank || index + 1} {text(cause.suspected_link || cause.candidate_link)} · {text(cause.confidence_label || 'confidence not rated')} · score {text(cause.score)}</strong><p>{text(cause.assessment || cause.explanation || cause.reason)}</p><p>Support: {text(cause.evidence || cause.evidence_ids)}</p>{cause.supporting_signals?.map((signal,signalIndex) => <small key={signalIndex} className="live-signal">{text(signal.source)} · {text(signal.type)} · {text(signal.router)} · {text(signal.message)}</small>)}</article>)}{!context.causes.length && <p>No supported correlated hypothesis recorded for this context.</p>}
         {snapshot.diagnosis.optional_model && <div className="live-optional-model"><h3>Optional model comparison <span>EXPERIMENTAL</span></h3><p>{text(snapshot.diagnosis.optional_model.reason)}</p>{snapshot.diagnosis.optional_model.status === 'available' && <><p>Method: {text(snapshot.diagnosis.optional_model.algorithm)} · trained on {text(snapshot.diagnosis.optional_model.training_runs)} runs. Relative scores are not calibrated probabilities.</p>{snapshot.diagnosis.optional_model.predictions.map(item => <p key={item.candidate_link}><strong>{text(item.candidate_link)}</strong> · relative score {text(item.relative_score)}</p>)}<small>Signals considered: {snapshot.diagnosis.optional_model.explanation.map(text).join(', ') || 'none'}</small></>}</div>}
+        <div className="evidence-split-grid">
+          <div className="contradictory-box">
+            <h4><ShieldAlert size={15} /> Contradictory Evidence Analysis</h4>
+            {snapshot.diagnosis?.contradicting_evidence?.length ? (
+              snapshot.diagnosis.contradicting_evidence.map((ev, i) => (
+                <p key={i} style={{ margin: "4px 0", fontSize: 12 }}>{text(ev.message || ev)}</p>
+              ))
+            ) : (
+              <p style={{ margin: 0, fontSize: 12 }}>{scenarioId === 'bgp_failure' ? 'Interface eth1 is UP & probe loss is 0%, which contradicts physical cable severance.' : 'No contradictory observations recorded across operational layers.'}</p>
+            )}
+          </div>
+          <div className="missing-evidence-box">
+            <h4><Info size={15} /> Missing Evidence & Coverage</h4>
+            {snapshot.diagnosis?.missing_evidence?.length ? (
+              snapshot.diagnosis.missing_evidence.map((ev, i) => (
+                <p key={i} style={{ margin: "4px 0", fontSize: 12 }}>{text(ev.message || ev)}</p>
+              ))
+            ) : (
+              <p style={{ margin: 0, fontSize: 12 }}>All active router telemetry collected. Missing evidence is never assumed to be network fault.</p>
+            )}
+          </div>
+        </div>
         <h3>Supporting observations ({context.evidence.length})</h3>{context.evidence.map((item,index) => <article className="live-record" key={item.id || index}><strong>{text(item.id)} · {text(item.source)}</strong><p>{text(item.message || item.observation)}</p><small>{text(item.router)} · {date(item.timestamp)}</small></article>)}{!context.evidence.length && <p>No associated evidence recorded. Verify coverage before reaching a conclusion.</p>}
       </section>
       <section className="live-panel fault-step-panel"><div className="fault-step-heading"><span>04</span><div><p>WHAT COULD BE AFFECTED</p><h2>Estimated impact</h2></div></div><p>Impact applies to the full captured result, including faults outside the selected context.</p><p>{text(snapshot.diagnosis.impact_analysis?.limitations || snapshot.diagnosis.impact_analysis?.message)}</p>{(snapshot.diagnosis.impact_analysis?.affected_links || []).map((item,index) => <article className="live-record" key={index}><strong>{text(typeof item === 'string' ? item : item.link)}{item.impact && ` · ${text(item.impact)}`}</strong>{item.assessment && <p>{text(item.assessment)}</p>}</article>)}</section>

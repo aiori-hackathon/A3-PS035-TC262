@@ -115,9 +115,20 @@ def run_benchmark(scenario_ids, output_dir, collector=_collect_to, apply_fault=N
         raise RuntimeError("Refusing benchmark: baseline collection is incomplete or already has ranked fault candidates.")
     run_records = []
     baseline_id = f"baseline-{uuid4().hex[:12]}"
-    run_records.append({"held_out": held_out, "run_id": baseline_id, "scenario_id": "healthy_baseline",
-                        "expected_candidate_link": None, "diagnosis_status": "insufficient_evidence",
-                        "diagnosis": diagnosis_builder(baseline)})
+    baseline_diagnosis = diagnosis_builder(baseline)
+    baseline_snap_id = Path(baseline_path).stem if baseline_path else f"snap-{uuid4().hex[:8]}"
+    run_records.append({
+        "held_out": held_out,
+        "run_id": baseline_id,
+        "injection_run_id": baseline_id,
+        "snapshot_id": baseline_snap_id,
+        "scenario_id": "healthy_baseline",
+        "ground_truth_label": None,
+        "expected_candidate_link": None,
+        "diagnosis_status": baseline_diagnosis.get("diagnosis_status", "insufficient_evidence"),
+        "outcome": baseline_diagnosis.get("outcome", "INSUFFICIENT_EVIDENCE"),
+        "diagnosis": baseline_diagnosis,
+    })
     print(f"Baseline saved: {baseline_path}")
     catalog = {item["id"]: item for item in scenarios()}
     for scenario_id in scenario_ids:
@@ -152,9 +163,20 @@ def run_benchmark(scenario_ids, output_dir, collector=_collect_to, apply_fault=N
             sleep_fn(min(recovery_poll_interval, remaining))
         diagnosis = diagnosis_builder(fault_snapshot)
         run_id = f"{scenario_id}-{uuid4().hex[:12]}"
-        run_records.append({"held_out": held_out, "run_id": run_id, "scenario_id": scenario_id,
-                            "expected_candidate_link": catalog[scenario_id]["expected_link"],
-                            "diagnosis_status": diagnosis["diagnosis_status"], "diagnosis": diagnosis})
+        fault_snap_id = Path(fault_path).stem if fault_path else f"snap-{uuid4().hex[:8]}"
+        expected_link = catalog[scenario_id]["expected_link"]
+        run_records.append({
+            "held_out": held_out,
+            "run_id": run_id,
+            "injection_run_id": run_id,
+            "snapshot_id": fault_snap_id,
+            "scenario_id": scenario_id,
+            "ground_truth_label": expected_link,
+            "expected_candidate_link": expected_link,
+            "diagnosis_status": diagnosis.get("diagnosis_status", "ranked_hypotheses"),
+            "outcome": diagnosis.get("outcome", "DIAGNOSIS"),
+            "diagnosis": diagnosis,
+        })
         print(f"{scenario_id}: fault snapshot {fault_path}; recovery verified {recovered_path}")
     manifest = output_dir / "runs.jsonl"
     flags = os.O_WRONLY | os.O_CREAT | os.O_APPEND

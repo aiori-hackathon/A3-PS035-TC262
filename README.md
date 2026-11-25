@@ -7,6 +7,11 @@
 
 > **NETSCOPE** is an evidence-based network diagnosis and telemetry correlation system built for carrier and enterprise networks. It monitors a live 5-router autonomous system (AS) topology running FRRouting (FRR) inside Containerlab, detects routing anomalies (such as eBGP session dropouts and prefix starvation), correlates bilateral symptoms into candidate link failures, performs graph-theoretic impact analysis, and persists incident lifecycles across a modern web operations center.
 
+> **Demo & Evaluation Highlights:**
+> - **Interactive Demo (`/demo`):** Runs locally without cloud/Firebase credentials (`frontend/src/services/firebaseAuth.js` includes an offline-safe fallback), featuring a 5-router topology view, ranked hypotheses, supporting/contradictory/missing evidence, explicit abstention, a **Manual vs. NETSCOPE** comparison, and a live **Benchmark Dashboard**.
+> - **Empirical Benchmark:** Evaluated against all 5 Containerlab fault scenarios + healthy baseline (**Top-1: 100%**, **Top-3: 100%**, **MRR: 1.0**, **Abstention Coverage: 83.3%**). See [docs/EVALUATION_REPORT.md](docs/EVALUATION_REPORT.md).
+> - **Documentation:** [docs/DEMO_CONTRACT.md](docs/DEMO_CONTRACT.md) | [docs/FINAL_DEMO_RUNBOOK.md](docs/FINAL_DEMO_RUNBOOK.md) | [docs/DEMO_PRESENTATION_SCRIPT.md](docs/DEMO_PRESENTATION_SCRIPT.md)
+
 ---
 
 ## Table of Contents
